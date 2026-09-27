@@ -95,16 +95,36 @@ function escape(text: string) {
 const continueList = insertNewlineContinueMarkupCommand({
   nonTightLists: false,
 });
+function exitEmptyList(target: Parameters<typeof continueList>[0]) {
+  const { state, dispatch } = target;
+  const range = state.selection.main;
+  if (state.selection.ranges.length !== 1 || !range.empty) return false;
+  const line = state.doc.lineAt(range.from);
+  if (range.from !== line.to || !/^\s*(?:[-+*]|\d+[.)])\s*$/.test(line.text))
+    return false;
+  let node = syntaxTree(state).resolveInner(line.from, 1);
+  while (node && node.name !== "FencedCode" && node.name !== "CodeBlock")
+    node = node.parent!;
+  if (node) return false;
+  const separator = line.number === 1 ? "" : state.lineBreak;
+  dispatch(
+    state.update({
+      changes: { from: line.from, to: line.to, insert: separator },
+      selection: EditorSelection.cursor(line.from + separator.length),
+      scrollIntoView: true,
+      userEvent: "input",
+    }),
+  );
+  return true;
+}
 function continueListOrExit(target: Parameters<typeof continueList>[0]) {
   const { state, dispatch } = target;
+  if (exitEmptyList(target)) return true;
   const ranges = state.selection.ranges;
   if (ranges.length === 1 && ranges[0].empty) {
     const line = state.doc.lineAt(ranges[0].from);
     const listStart = /^(\s*)([-*])\s+(?=\S)/.exec(line.text);
-    if (
-      listStart &&
-      ranges[0].from <= line.from + listStart[0].length
-    ) {
+    if (listStart && ranges[0].from <= line.from + listStart[0].length) {
       let node = syntaxTree(state).resolveInner(line.from, 1);
       while (node && node.name !== "FencedCode" && node.name !== "CodeBlock")
         node = node.parent!;
@@ -114,27 +134,6 @@ function continueListOrExit(target: Parameters<typeof continueList>[0]) {
           state.update({
             changes: { from: line.from, insert: marker + state.lineBreak },
             selection: EditorSelection.cursor(line.from + marker.length),
-            scrollIntoView: true,
-            userEvent: "input",
-          }),
-        );
-        return true;
-      }
-    }
-    if (
-      ranges[0].from === line.to &&
-      /^\s*(?:[-+*]|\d+[.)])\s*$/.test(line.text)
-    ) {
-      let node = syntaxTree(state).resolveInner(line.from, 1);
-      while (node && node.name !== "FencedCode" && node.name !== "CodeBlock")
-        node = node.parent!;
-      if (!node) {
-        dispatch(
-          state.update({
-            changes: { from: line.from, to: line.to, insert: state.lineBreak },
-            selection: EditorSelection.cursor(
-              line.from + state.lineBreak.length,
-            ),
             scrollIntoView: true,
             userEvent: "input",
           }),
@@ -154,7 +153,10 @@ const extensions = [
   keymap.of([
     ...historyKeymap,
     { key: "Enter", run: continueListOrExit },
-    { key: "Backspace", run: deleteMarkupBackward },
+    {
+      key: "Backspace",
+      run: (target) => exitEmptyList(target) || deleteMarkupBackward(target),
+    },
     ...defaultKeymap,
   ]),
   markdown({ addKeymap: false }),

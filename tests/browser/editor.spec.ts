@@ -277,6 +277,46 @@ test("continues bullets once and exits on an empty bullet", async ({
   await expect(page.locator("#rendered p").last()).toHaveText("Next paragraph");
 });
 
+test("returns to prose after a list below a paragraph", async ({ page }) => {
+  const editor = page.getByRole("textbox", { name: "Markdown document" });
+  await editor.fill("Before\n\n- First item");
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Second item");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("After");
+  const lines = page.locator(".cm-line");
+  await expect(lines.nth(5)).toHaveText("After");
+  await expect(lines.nth(5)).not.toHaveClass(/cm-list-line/);
+  await expect(page.locator(".cm-list-gap")).toHaveCount(2);
+  const boxes = await Promise.all(
+    [0, 2, 3, 5].map((index) => lines.nth(index).boundingBox()),
+  );
+  const lineHeight = await lines
+    .first()
+    .evaluate((element) => parseFloat(getComputedStyle(element).lineHeight));
+  const before = boxes[1]!.y - boxes[0]!.y - lineHeight;
+  const after = boxes[3]!.y - boxes[2]!.y - lineHeight;
+  expect(Math.abs(before - after)).toBeLessThan(1);
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.locator("#rendered > p").last()).toHaveText("After");
+});
+
+test("backspace exits an empty bullet", async ({ page }) => {
+  const editor = page.getByRole("textbox", { name: "Markdown document" });
+  await editor.fill("- First item");
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.type("After");
+  await expect(page.locator(".cm-line").last()).toHaveText("After");
+  await expect(page.locator(".cm-line").last()).not.toHaveClass(/cm-list-line/);
+  await expect(page.locator(".cm-list-gap")).toHaveCount(1);
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.locator("#rendered > p").last()).toHaveText("After");
+});
+
 for (const marker of ["-", "*"]) {
   test(`shows ${marker} as a bullet after space`, async ({ page }) => {
     const editor = page.getByRole("textbox", { name: "Markdown document" });

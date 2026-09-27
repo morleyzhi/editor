@@ -44,8 +44,14 @@ function lineStyles(view: EditorView) {
       to: range.to,
       enter(node) {
         if (node.name === "BulletList" || node.name === "OrderedList") {
+          const firstLine = doc.lineAt(node.from);
           const lastLine = doc.lineAt(Math.max(node.from, node.to - 1));
           add(lastLine.from, lastLine.to, "cm-list-end");
+          for (const number of [firstLine.number - 1, lastLine.number + 1]) {
+            if (number < 1 || number > doc.lines) continue;
+            const line = doc.line(number);
+            if (line.text === "") add(line.from, line.to, "cm-list-gap");
+          }
         }
         if (node.name === "ListItem") {
           add(node.from, node.to, "cm-list-line");
