@@ -295,3 +295,47 @@ test("starts a new prose paragraph at column zero", async ({ page }) => {
       .evaluate((element) => element.textContent),
   ).toBe("Second paragraph");
 });
+
+test("double-clicking selects a word for replacement", async ({ page }) => {
+  const editor = page.getByRole("textbox", { name: "Markdown document" });
+  await editor.fill("Select this word please");
+  const line = page.locator(".cm-line").first();
+  await line.dblclick({ position: { x: 92, y: 14 } });
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(
+    "word",
+  );
+  await page.keyboard.type("phrase");
+  await expect(line).toHaveText("Select this phrase please");
+});
+
+test("double-clicking a finding selects the word before acknowledgement", async ({
+  page,
+}) => {
+  await page.route("**/api/settings", (route) =>
+    route.fulfill({ json: { hasKey: true } }),
+  );
+  await page.reload();
+  await page.route("**/api/pass", (route) => {
+    const body = route.request().postDataJSON();
+    return route.fulfill({
+      json: {
+        answers: Object.fromEntries(
+          body.state.spans.map((span: { id: string; text: string }) => [
+            span.id,
+            { noul: span.text === "very" ? 0.95 : 0.1 },
+          ]),
+        ),
+      },
+    });
+  });
+  await page
+    .getByRole("textbox", { name: "Markdown document" })
+    .fill("A very useful piece.");
+  await page.getByRole("button", { name: "Show editor" }).click();
+  await page.getByRole("button", { name: "Run this pass" }).click();
+  await page.locator(".finding").dblclick();
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(
+    "very",
+  );
+  await expect(page.locator(".finding-tooltip")).toBeVisible();
+});

@@ -125,11 +125,23 @@ export const findingExtensions = [
     { hideOnChange: true, hoverTime: 200 },
   ),
   EditorView.domEventHandlers({
+    dblclick(event, view) {
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      const word = pos === null ? null : view.state.wordAt(pos);
+      if (!word) return false;
+      event.preventDefault();
+      view.dispatch({ selection: { anchor: word.from, head: word.to } });
+      view.focus();
+      return true;
+    },
     click(event, view) {
+      if (event.detail > 1) return false;
       const el = (event.target as HTMLElement).closest<HTMLElement>(
         "[data-finding]",
       );
-      view.dispatch({ effects: openFinding.of(el?.dataset.finding || null) });
+      const finding = el?.dataset.finding || null;
+      if (finding !== view.state.field(clickedTooltip))
+        view.dispatch({ effects: openFinding.of(finding) });
       return false;
     },
     keydown(event, view) {
