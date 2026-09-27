@@ -228,6 +228,35 @@ test("gives single newlines paragraph spacing in write and preview", async ({
   await expect(page.locator("#rendered code")).toContainText(["const x = 1;"]);
 });
 
+for (const [listText, tag] of [
+  ["- One\n- Two", "ul"],
+  ["1. One\n2. Two", "ol"],
+]) {
+  test(`gives ${tag} matching surrounding spacing`, async ({ page }) => {
+    const editor = page.getByRole("textbox", { name: "Markdown document" });
+    await editor.fill(`Before\n\n${listText}\n\nAfter`);
+    const lines = page.locator(".cm-line");
+    const boxes = await Promise.all(
+      [0, 2, 3, 5].map((index) => lines.nth(index).boundingBox()),
+    );
+    const lineHeight = await lines
+      .first()
+      .evaluate((element) => parseFloat(getComputedStyle(element).lineHeight));
+    const before = boxes[1]!.y - boxes[0]!.y - lineHeight;
+    const after = boxes[3]!.y - boxes[2]!.y - lineHeight;
+    expect(before).toBeGreaterThan(5);
+    expect(Math.abs(before - after)).toBeLessThan(1);
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const paragraphs = page.locator("#rendered > p");
+    const first = await paragraphs.first().boundingBox();
+    const list = await page.locator(`#rendered > ${tag}`).boundingBox();
+    const last = await paragraphs.last().boundingBox();
+    const previewBefore = list!.y - first!.y - first!.height;
+    const previewAfter = last!.y - list!.y - list!.height;
+    expect(Math.abs(previewBefore - previewAfter)).toBeLessThan(1);
+  });
+}
+
 test("continues bullets once and exits on an empty bullet", async ({
   page,
 }) => {

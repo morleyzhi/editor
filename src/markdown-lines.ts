@@ -43,6 +43,10 @@ function lineStyles(view: EditorView) {
       from: range.from,
       to: range.to,
       enter(node) {
+        if (node.name === "BulletList" || node.name === "OrderedList") {
+          const lastLine = doc.lineAt(Math.max(node.from, node.to - 1));
+          add(lastLine.from, lastLine.to, "cm-list-end");
+        }
         if (node.name === "ListItem") {
           add(node.from, node.to, "cm-list-line");
           const line = doc.lineAt(node.from);
@@ -65,10 +69,10 @@ function lineStyles(view: EditorView) {
   return Decoration.set(
     [
       ...[...styles]
-      .sort(([a], [b]) => a - b)
-      .map(([from, classes]) =>
-        Decoration.line({ class: [...classes].join(" ") }).range(from),
-      ),
+        .sort(([a], [b]) => a - b)
+        .map(([from, classes]) =>
+          Decoration.line({ class: [...classes].join(" ") }).range(from),
+        ),
       ...bullets,
     ],
     true,

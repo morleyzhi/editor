@@ -247,6 +247,9 @@ header {
 .cm-list-line {
   padding: 0 0 0 10px !important;
 }
+.cm-list-end {
+  padding-bottom: 0.6em !important;
+}
 .cm-bullet {
   display: inline-block;
   width: 1ch;
@@ -614,6 +617,10 @@ dialog input {
   height: 0.85em;
 }
 #rendered p {
+  margin: 0 0 1.2em;
+}
+#rendered > ul,
+#rendered > ol {
   margin: 0 0 1.2em;
 }
 @media (max-width: 580px) {
