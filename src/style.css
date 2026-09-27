@@ -247,6 +247,10 @@ header {
 .cm-list-line {
   padding: 0 0 0 10px !important;
 }
+.cm-bullet {
+  display: inline-block;
+  width: 1ch;
+}
 .cm-code-line {
   padding: 0 14px !important;
   background: #efefe6;

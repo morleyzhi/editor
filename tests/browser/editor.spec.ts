@@ -235,11 +235,11 @@ test("continues bullets once and exits on an empty bullet", async ({
   await editor.fill("- First item");
   await page.keyboard.press("Enter");
   await page.keyboard.type("Second item");
-  await expect(editor).toHaveText("- First item- Second item");
+  await expect(editor).toHaveText("• First item• Second item");
   await page.keyboard.press("Enter");
   await page.keyboard.press("Enter");
   await page.keyboard.type("Next paragraph");
-  await expect(editor).toHaveText("- First item- Second itemNext paragraph");
+  await expect(editor).toHaveText("• First item• Second itemNext paragraph");
   await expect(page.locator(".cm-line").last()).toHaveText("Next paragraph");
   const markdown = await page.locator(".cm-content").getAttribute("aria-label");
   expect(markdown).toBe("Markdown document");
@@ -247,6 +247,20 @@ test("continues bullets once and exits on an empty bullet", async ({
   await expect(page.locator("#rendered li")).toHaveCount(2);
   await expect(page.locator("#rendered p").last()).toHaveText("Next paragraph");
 });
+
+for (const marker of ["-", "*"]) {
+  test(`shows ${marker} as a bullet after space`, async ({ page }) => {
+    const editor = page.getByRole("textbox", { name: "Markdown document" });
+    await editor.click();
+    await page.keyboard.type(marker);
+    await expect(page.locator(".cm-bullet")).toHaveCount(0);
+    await page.keyboard.press("Space");
+    await expect(page.locator(".cm-bullet")).toHaveText("•");
+    await page.keyboard.type("Item");
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await expect(page.locator("#rendered li")).toHaveText("Item");
+  });
+}
 
 test("keeps list items compact and styles pasted fenced code", async ({
   page,

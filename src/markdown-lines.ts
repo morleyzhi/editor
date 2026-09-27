@@ -1,13 +1,25 @@
+import type { Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import {
   Decoration,
   EditorView,
   ViewPlugin,
+  WidgetType,
   type ViewUpdate,
 } from "@codemirror/view";
 
+class BulletWidget extends WidgetType {
+  toDOM() {
+    const bullet = document.createElement("span");
+    bullet.className = "cm-bullet";
+    bullet.textContent = "•";
+    return bullet;
+  }
+}
+
 function lineStyles(view: EditorView) {
   const styles = new Map<number, Set<string>>();
+  const bullets: Range<Decoration>[] = [];
   const { doc } = view.state;
   const add = (from: number, to: number, style: string) => {
     for (
@@ -31,18 +43,35 @@ function lineStyles(view: EditorView) {
       from: range.from,
       to: range.to,
       enter(node) {
-        if (node.name === "ListItem") add(node.from, node.to, "cm-list-line");
+        if (node.name === "ListItem") {
+          add(node.from, node.to, "cm-list-line");
+          const line = doc.lineAt(node.from);
+          const marker = /^(\s*)[-*](?=\s)/.exec(line.text);
+          if (marker && line.from + marker[1].length >= node.from) {
+            const from = line.from + marker[1].length;
+            bullets.push(
+              Decoration.replace({ widget: new BulletWidget() }).range(
+                from,
+                from + 1,
+              ),
+            );
+          }
+        }
         if (node.name === "FencedCode" || node.name === "CodeBlock")
           add(node.from, node.to, "cm-code-line");
       },
     });
   }
   return Decoration.set(
-    [...styles]
+    [
+      ...[...styles]
       .sort(([a], [b]) => a - b)
       .map(([from, classes]) =>
         Decoration.line({ class: [...classes].join(" ") }).range(from),
       ),
+      ...bullets,
+    ],
+    true,
   );
 }
 
