@@ -242,15 +242,12 @@ header {
   caret-color: #345a46;
 }
 .cm-line {
-  padding: 0 !important;
-  margin-bottom: 0.6em;
+  padding: 0 0 0.6em !important;
 }
 .cm-list-line {
-  margin-bottom: 0;
-  padding-left: 10px !important;
+  padding: 0 0 0 10px !important;
 }
 .cm-code-line {
-  margin-bottom: 0;
   padding: 0 14px !important;
   background: #efefe6;
   border-left: 2px solid #d6ddce;

@@ -126,7 +126,19 @@ export const findingExtensions = [
   ),
   EditorView.domEventHandlers({
     dblclick(event, view) {
-      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      const caret = document.caretPositionFromPoint?.(
+        event.clientX,
+        event.clientY,
+      );
+      const range = caret
+        ? null
+        : document.caretRangeFromPoint?.(event.clientX, event.clientY);
+      const node = caret?.offsetNode || range?.startContainer;
+      const offset = caret?.offset ?? range?.startOffset;
+      const pos =
+        node && offset !== undefined && view.dom.contains(node)
+          ? view.posAtDOM(node, offset)
+          : view.posAtCoords({ x: event.clientX, y: event.clientY });
       const word = pos === null ? null : view.state.wordAt(pos);
       if (!word) return false;
       event.preventDefault();

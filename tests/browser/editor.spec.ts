@@ -218,7 +218,10 @@ test("gives single newlines paragraph spacing in write and preview", async ({
   const lines = page.locator(".cm-line");
   const first = await lines.nth(0).boundingBox();
   const second = await lines.nth(1).boundingBox();
-  expect(second!.y - first!.y - first!.height).toBeGreaterThan(5);
+  const lineHeight = await lines
+    .nth(0)
+    .evaluate((element) => parseFloat(getComputedStyle(element).lineHeight));
+  expect(second!.y - first!.y - lineHeight).toBeGreaterThan(5);
   await page.getByRole("button", { name: "Preview", exact: true }).click();
   await expect(page.locator("#rendered .graf-space")).toHaveCount(1);
   await expect(page.locator("#rendered li")).toHaveCount(2);
@@ -338,4 +341,20 @@ test("double-clicking a finding selects the word before acknowledgement", async 
     "very",
   );
   await expect(page.locator(".finding-tooltip")).toBeVisible();
+});
+
+test("double-clicking a later paragraph selects its own word", async ({
+  page,
+}) => {
+  const editor = page.getByRole("textbox", { name: "Markdown document" });
+  await editor.fill("Alpha word\nBeta line\nGamma end");
+  await page
+    .locator(".cm-line")
+    .nth(2)
+    .dblclick({ position: { x: 16, y: 14 } });
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(
+    "Gamma",
+  );
+  await page.keyboard.type("Delta");
+  await expect(page.locator(".cm-line").nth(2)).toHaveText("Delta end");
 });
