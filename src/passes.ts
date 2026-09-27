@@ -1,3 +1,5 @@
+import MarkdownIt from "markdown-it";
+
 export interface Pass {
   id: string;
   name: string;
@@ -192,8 +194,26 @@ export interface Finding extends Span {
 export function spansFor(text: string, unit: Pass["unit"]): Span[] {
   const spans: Span[] = [];
   const segmenter = new Intl.Segmenter("en", { granularity: unit });
+  const lineStarts = [0];
+  for (const newline of text.matchAll(/\r\n|\r|\n/g))
+    lineStarts.push(newline.index + newline[0].length);
+  const labels = new MarkdownIt("commonmark")
+    .disable("inline")
+    .parse(text, {})
+    .filter((token) => token.type === "fence" && token.map)
+    .map((token) => ({
+      from: lineStarts[token.map![0]],
+      to: lineStarts[token.map![0] + 1] ?? text.length,
+    }));
+  let labelIndex = 0;
   for (let from = 0; from < text.length;) {
-    let end = Math.min(from + 2000, text.length);
+    const label = labels[labelIndex];
+    if (label && from === label.from) {
+      from = label.to;
+      labelIndex++;
+      continue;
+    }
+    let end = Math.min(from + 2000, label?.from ?? text.length, text.length);
     if (end < text.length) {
       const breakAt = text.lastIndexOf("\n", end);
       const spaceAt = text.lastIndexOf(" ", end);

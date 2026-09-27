@@ -177,3 +177,42 @@ describe("Long pieces", () => {
     ).toBeGreaterThan(spans.at(-1)!.to);
   });
 });
+
+describe("Code block labels", () => {
+  for (const unit of ["word", "sentence"] as const) {
+    for (const opening of [
+      "```typescript",
+      "~~~python title=example",
+      "> ```javascript",
+      "- ```rust",
+    ]) {
+      it(`excludes ${opening} from ${unit} judgments`, () => {
+        const text = `Before the code\n${opening}\nexample()\n\`\`\`\nAfter the code.`;
+        const from = text.indexOf(opening);
+        const to = from + opening.length;
+        const spans = spansFor(text, unit);
+        expect(spans.some((span) => span.from < to && span.to > from)).toBe(
+          false,
+        );
+        for (const span of spans)
+          expect(text.slice(span.from, span.to)).toBe(span.text);
+        expect(spans.some((span) => span.text.includes("Before"))).toBe(true);
+      });
+    }
+  }
+  it("keeps a language name in ordinary prose", () => {
+    expect(
+      spansFor("I write TypeScript.", "word").map((s) => s.text),
+    ).toContain("TypeScript");
+  });
+  it("excludes a label in an unfinished code block", () => {
+    expect(spansFor("```typescript", "word")).toEqual([]);
+  });
+  it("preserves offsets after Windows line endings", () => {
+    const text = "Before.\r\n```typescript\r\ncode\r\n```\r\nAfter.";
+    const spans = spansFor(text, "sentence");
+    expect(spans.some((s) => s.text.includes("typescript"))).toBe(false);
+    for (const span of spans)
+      expect(text.slice(span.from, span.to)).toBe(span.text);
+  });
+});
