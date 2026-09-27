@@ -262,6 +262,19 @@ for (const marker of ["-", "*"]) {
   });
 }
 
+for (const marker of ["-", "*"]) {
+  test(`inserts a bullet before the first ${marker} item`, async ({ page }) => {
+    const editor = page.getByRole("textbox", { name: "Markdown document" });
+    await editor.fill(`${marker} First item\n${marker} Second item`);
+    await page.locator(".cm-bullet").first().click();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".cm-bullet")).toHaveCount(3);
+    await expect(page.locator(".cm-line").nth(1)).toHaveText("• First item");
+    await page.keyboard.type("New item");
+    await expect(page.locator(".cm-line").first()).toHaveText("• New item");
+  });
+}
+
 test("keeps list items compact and styles pasted fenced code", async ({
   page,
 }) => {

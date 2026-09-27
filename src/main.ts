@@ -100,6 +100,27 @@ function continueListOrExit(target: Parameters<typeof continueList>[0]) {
   const ranges = state.selection.ranges;
   if (ranges.length === 1 && ranges[0].empty) {
     const line = state.doc.lineAt(ranges[0].from);
+    const listStart = /^(\s*)([-*])\s+(?=\S)/.exec(line.text);
+    if (
+      listStart &&
+      ranges[0].from <= line.from + listStart[0].length
+    ) {
+      let node = syntaxTree(state).resolveInner(line.from, 1);
+      while (node && node.name !== "FencedCode" && node.name !== "CodeBlock")
+        node = node.parent!;
+      if (!node) {
+        const marker = `${listStart[1]}${listStart[2]} `;
+        dispatch(
+          state.update({
+            changes: { from: line.from, insert: marker + state.lineBreak },
+            selection: EditorSelection.cursor(line.from + marker.length),
+            scrollIntoView: true,
+            userEvent: "input",
+          }),
+        );
+        return true;
+      }
+    }
     if (
       ranges[0].from === line.to &&
       /^\s*(?:[-+*]|\d+[.)])\s*$/.test(line.text)
