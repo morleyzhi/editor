@@ -41,10 +41,11 @@ import "./style.css";
 const $ = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 $("app").innerHTML = `
-<aside class="library"><a class="brand" href="/">editor<span>●</span></a><p class="eyebrow">A PLACE FOR YOUR WORDS</p><button id="new" class="primary new">＋ New draft</button><div class="library-heading">YOUR DRAFTS <span id="draft-count"></span></div><nav id="drafts" aria-label="Drafts"></nav><div class="library-bottom"><button id="import">↥ Import Markdown</button><button id="settings">⚙ Settings</button><p>Written by you.<br>Saved on this device.</p></div></aside>
-<main><header><button id="library-toggle" aria-label="Show drafts">☰</button><div class="breadcrumb">Workspace <span>/</span> <span id="crumb">Untitled</span></div><div class="header-actions"><span id="save-status" role="status">Saved on this device</span><button id="export">Export ↗</button></div></header>
-<section class="document"><div class="document-top"><span class="eyebrow">DRAFT <span class="green-dot">●</span></span><div class="toolbar"><button id="undo" title="Undo (⌘/Ctrl Z)" aria-label="Undo">↶</button><button id="redo" title="Redo (⌘/Ctrl Shift Z)" aria-label="Redo">↷</button><span class="divider"></span><button id="write" class="active">Write</button><button id="preview">Preview</button><button id="delete" title="Delete draft" aria-label="Delete draft">⌫</button></div></div><input id="title" aria-label="Draft title" placeholder="Untitled draft" maxlength="300"><div class="document-meta"><span id="words">0 words</span><span>·</span><span id="read-time">1 min read</span><span class="markdown-label">MARKDOWN</span></div><div id="writing"></div><article id="rendered" hidden></article><footer><span id="mode-label">Your words, at your pace.</span><span id="flag-count">No open findings</span></footer></section></main>
-<aside class="editor-pane"><div class="pane-heading"><div><span class="eyebrow">ONE PASS AT A TIME</span><h2>Editor</h2></div><span class="pane-icon">✳</span></div><p class="pane-intro">A fresh look at your writing.<br>You make every edit.</p><div class="book"><span>▤</span><div><strong>Clarity, flow & grace</strong><small>Inspired by Williams & Bizup<br>and Strunk & White</small></div></div><div class="pass-label">EDITING PASSES <span id="completed">0 / 20</span></div><div id="passes"></div><div class="run-area"><p id="pass-detail"></p><button id="run" class="primary">Run this pass <span>→</span></button><button id="cancel" hidden>Cancel pass</button><button id="ack-visible" hidden>Acknowledge visible</button><p id="pass-status" role="status">Only runs when you ask.</p></div></aside>
+<div id="drawer-backdrop" hidden></div>
+<aside class="library" id="drafts-panel" aria-label="Drafts"><div class="drawer-heading"><h2>Drafts</h2><button id="close-library" aria-label="Close drafts">×</button></div><button id="new" class="primary new">New draft</button><nav id="drafts" aria-label="Drafts"></nav><div class="library-bottom"><button id="import">Import Markdown</button><button id="settings">Settings</button></div></aside>
+<main><header><button id="library-toggle" aria-label="Show drafts" aria-expanded="false" aria-controls="drafts-panel">Drafts</button><span id="crumb">Untitled</span><div class="header-actions"><span id="save-status" role="status">Saved</span><button id="export">Export</button><button id="editor-toggle" aria-label="Show editor" aria-expanded="false" aria-controls="editor-panel">Editor</button></div></header>
+<section class="document"><div class="document-top"><div class="toolbar"><button id="undo" title="Undo (⌘/Ctrl Z)" aria-label="Undo">↶</button><button id="redo" title="Redo (⌘/Ctrl Shift Z)" aria-label="Redo">↷</button><span class="divider"></span><button id="write" class="active">Write</button><button id="preview">Preview</button><button id="delete" title="Delete draft" aria-label="Delete draft">⌫</button></div></div><input id="title" aria-label="Draft title" placeholder="Untitled draft" maxlength="300"><div class="document-meta"><span id="words">0 words</span><span>·</span><span id="read-time">1 min read</span></div><div id="writing"></div><article id="rendered" hidden></article><footer><span id="flag-count">No open findings</span></footer></section></main>
+<aside class="editor-pane" id="editor-panel" aria-label="Editor"><div class="drawer-heading"><h2>Editor</h2><button id="close-editor" aria-label="Close editor">×</button></div><div class="pass-label">Editing passes <span id="completed">0 / 20</span></div><div id="passes"></div><div class="run-area"><p id="pass-detail"></p><button id="run" class="primary">Run this pass</button><button id="cancel" hidden>Cancel pass</button><button id="ack-visible" hidden>Acknowledge visible</button><p id="pass-status" role="status"></p></div></aside>
 <dialog id="settings-dialog"><form id="settings-form"><div class="dialog-heading"><h2>Settings</h2><button type="button" id="close-settings" aria-label="Close settings">×</button></div><p>Your Jev key connects editing passes to TypeSafe.</p><label for="api-key">Jev API key</label><input id="api-key" type="password" autocomplete="off" placeholder="Enter your API key"><p class="help">Your key stays in this local server’s memory for up to 24 hours. Other origins cannot read it. Enter it again after restarting the server.</p><div id="key-status" role="status"></div><div class="dialog-actions"><button type="button" id="forget-key">Forget key</button><button class="primary" type="submit">Save key</button></div></form></dialog><input id="file" type="file" accept=".md,.markdown,.txt,text/plain,text/markdown" hidden><div id="toast" role="status" hidden></div>`;
 let drafts: Draft[] = [],
   current: Draft,
@@ -185,11 +186,10 @@ function updateStats() {
     `${Math.max(1, Math.ceil(count / 225))} min read`;
 }
 function renderDrafts() {
-  $("draft-count").textContent = String(drafts.length);
   $("drafts").innerHTML = drafts
     .map(
       (d) =>
-        `<button class="draft ${d.id === current?.id ? "selected" : ""}" data-id="${d.id}"><span class="draft-icon">≡</span><span><strong>${escape(d.title || "Untitled draft")}</strong><small>${new Date(d.updated).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · Draft</small></span></button>`,
+        `<button class="draft ${d.id === current?.id ? "selected" : ""}" data-id="${d.id}"><span><strong>${escape(d.title || "Untitled draft")}</strong><small>${new Date(d.updated).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</small></span></button>`,
     )
     .join("");
 }
@@ -197,7 +197,7 @@ async function loadDraft(draft: Draft) {
   cancelRun();
   if (current) await saveNow();
   current = draft;
-  document.body.classList.remove("show-library");
+  closeSidebars();
   let state: EditorState;
   try {
     state = EditorState.fromJSON(
@@ -292,9 +292,6 @@ function setPreview(value: boolean) {
   $("rendered").hidden = !value;
   $("write").classList.toggle("active", !value);
   $("preview").classList.toggle("active", value);
-  $("mode-label").textContent = value
-    ? "Reading view · switch to Write to review findings"
-    : "Your words, at your pace.";
   if (value) renderPreview();
   else {
     view.requestMeasure();
@@ -366,6 +363,7 @@ async function runPass() {
     return;
   }
   setPreview(false);
+  closeSidebars();
   const controller = new AbortController();
   runController = controller;
   updateControls();
@@ -415,8 +413,31 @@ async function runPass() {
     updateControls();
   }
 }
-$("library-toggle").onclick = () =>
-  document.body.classList.toggle("show-library");
+function closeSidebars() {
+  document.body.classList.remove("show-library", "show-editor");
+  $("drawer-backdrop").hidden = true;
+  $<HTMLButtonElement>("library-toggle").setAttribute("aria-expanded", "false");
+  $<HTMLButtonElement>("editor-toggle").setAttribute("aria-expanded", "false");
+}
+function toggleSidebar(side: "library" | "editor") {
+  const open = !document.body.classList.contains(`show-${side}`);
+  closeSidebars();
+  if (open) {
+    document.body.classList.add(`show-${side}`);
+    $("drawer-backdrop").hidden = false;
+    $<HTMLButtonElement>(
+      `${side === "library" ? "library" : "editor"}-toggle`,
+    ).setAttribute("aria-expanded", "true");
+  }
+}
+$("library-toggle").onclick = () => toggleSidebar("library");
+$("editor-toggle").onclick = () => toggleSidebar("editor");
+$("close-library").onclick = closeSidebars;
+$("close-editor").onclick = closeSidebars;
+$("drawer-backdrop").onclick = closeSidebars;
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeSidebars();
+});
 $("new").onclick = async () => {
   await loadDraft(newDraft());
   await saveNow();

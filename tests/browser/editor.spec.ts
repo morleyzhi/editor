@@ -36,7 +36,7 @@ test("renders Markdown without executing embedded scripts", async ({
   await expect(page.locator("#rendered h1")).toHaveText("A heading");
   await expect(page.locator("#rendered table")).toBeVisible();
   await expect(page.locator("#rendered s")).toHaveText("gone");
-  await expect(page).toHaveTitle("Editor — a place for your words");
+  await expect(page).toHaveTitle("Editor");
   await expect(page.locator("#rendered script")).toHaveCount(0);
 });
 test("requires acknowledging a finding before editing it", async ({ page }) => {
@@ -59,6 +59,7 @@ test("requires acknowledging a finding before editing it", async ({ page }) => {
   });
   const editor = page.getByRole("textbox", { name: "Markdown document" });
   await editor.fill("A very useful piece.");
+  await page.getByRole("button", { name: "Show editor" }).click();
   await page.getByRole("button", { name: "Run this pass" }).click();
   await expect(page.locator(".finding")).toHaveText("very");
   await editor.fill("Replaced");
@@ -127,8 +128,10 @@ test("acknowledges only findings currently on screen", async ({ page }) => {
   await page
     .getByRole("textbox", { name: "Markdown document" })
     .fill("very\n\n".repeat(100));
+  await page.getByRole("button", { name: "Show editor" }).click();
   await page.getByRole("button", { name: "Run this pass" }).click();
   await expect(page.locator("#flag-count")).toHaveText("100 open findings");
+  await page.getByRole("button", { name: "Show editor" }).click();
   const button = page.getByRole("button", { name: /Acknowledge visible/ });
   await expect(button).toBeVisible();
   await button.click();
@@ -160,7 +163,9 @@ test("discards a pass when the text changes", async ({ page }) => {
   });
   const editor = page.getByRole("textbox", { name: "Markdown document" });
   await editor.fill("A very useful piece.");
+  await page.getByRole("button", { name: "Show editor" }).click();
   await page.getByRole("button", { name: "Run this pass" }).click();
+  await page.getByRole("button", { name: "Show editor" }).click();
   await expect(page.getByRole("button", { name: "Cancel pass" })).toBeVisible();
   await editor.fill("A different piece.");
   release();
@@ -174,6 +179,7 @@ test("keeps draft text separate when switching drafts", async ({ page }) => {
   await page
     .getByRole("textbox", { name: "Markdown document" })
     .fill("First text");
+  await page.getByRole("button", { name: "Show drafts" }).click();
   await page.getByRole("button", { name: "New draft" }).click();
   await page
     .getByRole("textbox", { name: "Draft title" })
@@ -182,8 +188,39 @@ test("keeps draft text separate when switching drafts", async ({ page }) => {
     .getByRole("textbox", { name: "Markdown document" })
     .fill("Second text");
   await expect(page.locator("#save-status")).toHaveText("Saved on this device");
+  await page.getByRole("button", { name: "Show drafts" }).click();
   await page.getByRole("button", { name: /First article/ }).click();
   await expect(
     page.getByRole("textbox", { name: "Markdown document" }),
   ).toHaveText("First text");
+});
+
+test("starts with both sidebars collapsed", async ({ page }) => {
+  await expect(page.locator(".library")).toBeHidden();
+  await expect(page.locator(".editor-pane")).toBeHidden();
+  await page.getByRole("button", { name: "Show drafts" }).click();
+  await expect(page.locator(".library")).toBeVisible();
+  await page.getByRole("button", { name: "Close drafts" }).click();
+  await page.getByRole("button", { name: "Show editor" }).click();
+  await expect(page.locator(".library")).toBeHidden();
+  await expect(page.locator(".editor-pane")).toBeVisible();
+  await page.getByRole("button", { name: "Close editor" }).click();
+  await expect(page.locator(".editor-pane")).toBeHidden();
+});
+test("gives single newlines paragraph spacing in write and preview", async ({
+  page,
+}) => {
+  await page
+    .getByRole("textbox", { name: "Markdown document" })
+    .fill(
+      "First paragraph.\nSecond paragraph.\n\n- List item\n- Next item\n\n```js\nconst x = 1;\n```",
+    );
+  const lines = page.locator(".cm-line");
+  const first = await lines.nth(0).boundingBox();
+  const second = await lines.nth(1).boundingBox();
+  expect(second!.y - first!.y - first!.height).toBeGreaterThan(5);
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.locator("#rendered .graf-space")).toHaveCount(1);
+  await expect(page.locator("#rendered li")).toHaveCount(2);
+  await expect(page.locator("#rendered code")).toContainText(["const x = 1;"]);
 });
