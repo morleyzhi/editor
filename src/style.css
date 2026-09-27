@@ -245,6 +245,19 @@ header {
   padding: 0 !important;
   margin-bottom: 0.6em;
 }
+.cm-list-line {
+  margin-bottom: 0;
+  padding-left: 10px !important;
+}
+.cm-code-line {
+  margin-bottom: 0;
+  padding: 0 14px !important;
+  background: #efefe6;
+  border-left: 2px solid #d6ddce;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8em;
+  line-height: 1.7;
+}
 .cm-activeLine {
   background: transparent !important;
 }

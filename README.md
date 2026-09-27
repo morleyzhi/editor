@@ -26,7 +26,7 @@ The server listens on loopback. To use a different port, set `PORT` and `EDITOR_
 
 - Drafts, text undo/redo history, findings, and pass records save in IndexedDB on this browser and origin. Undo and redo survive reloads and switching drafts. Standard keyboard shortcuts work.
 - A single writing tab holds a browser lock to prevent competing saves. Save errors are visible. Export Markdown to keep a separate copy; clearing browser site data removes local drafts.
-- Drafts and editing passes open from the header and stay hidden while writing. Single newlines display with paragraph spacing in Write and Preview.
+- Drafts and editing passes open from the header and stay hidden while writing. Single newlines display with paragraph spacing in Write and Preview. List items and fenced code blocks keep compact line spacing; fenced code has a monospace writing style. Press Enter on an empty list item to start a prose paragraph at column zero.
 - Write arbitrary Markdown source. Preview renders CommonMark, tables, strikethrough, task lists, footnotes, links, images, code blocks, and sanitized HTML. Executable HTML is stripped. Import and export `.md` files.
 - CodeMirror renders only the visible part of long documents. Markdown parsing and pass preparation run in workers. Preview blocks use CSS content visibility. Saving and word counts are debounced.
 

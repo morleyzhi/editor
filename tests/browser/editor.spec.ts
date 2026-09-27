@@ -224,3 +224,74 @@ test("gives single newlines paragraph spacing in write and preview", async ({
   await expect(page.locator("#rendered li")).toHaveCount(2);
   await expect(page.locator("#rendered code")).toContainText(["const x = 1;"]);
 });
+
+test("continues bullets once and exits on an empty bullet", async ({
+  page,
+}) => {
+  const editor = page.getByRole("textbox", { name: "Markdown document" });
+  await editor.fill("- First item");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Second item");
+  await expect(editor).toHaveText("- First item- Second item");
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Next paragraph");
+  await expect(editor).toHaveText("- First item- Second itemNext paragraph");
+  await expect(page.locator(".cm-line").last()).toHaveText("Next paragraph");
+  const markdown = await page.locator(".cm-content").getAttribute("aria-label");
+  expect(markdown).toBe("Markdown document");
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.locator("#rendered li")).toHaveCount(2);
+  await expect(page.locator("#rendered p").last()).toHaveText("Next paragraph");
+});
+
+test("keeps list items compact and styles pasted fenced code", async ({
+  page,
+}) => {
+  const editor = page.getByRole("textbox", { name: "Markdown document" });
+  await editor.fill(
+    "Before.\n\n- One\n- Two\n\n```js\nconst x = 1;\nconsole.log(x);\n```\n\nAfter.",
+  );
+  await expect(page.locator(".cm-list-line")).toHaveCount(2);
+  await expect(page.locator(".cm-code-line")).toHaveCount(4);
+  const first = await page.locator(".cm-list-line").nth(0).boundingBox();
+  const second = await page.locator(".cm-list-line").nth(1).boundingBox();
+  expect(second!.y - first!.y - first!.height).toBeLessThan(3);
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.locator("#rendered pre code")).toContainText(
+    "console.log(x);",
+  );
+  await expect(page.locator("#rendered li")).toHaveCount(2);
+});
+
+test("styles a code fence while typing and after closing it", async ({
+  page,
+}) => {
+  const editor = page.getByRole("textbox", { name: "Markdown document" });
+  await editor.fill("Intro.\n\n");
+  await page.keyboard.type("```js");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("const answer = 42;");
+  await expect(page.locator(".cm-code-line")).toHaveCount(2);
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("```");
+  await expect(page.locator(".cm-code-line")).toHaveCount(3);
+  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.locator("#rendered pre code")).toContainText(
+    "const answer = 42;",
+  );
+});
+
+test("starts a new prose paragraph at column zero", async ({ page }) => {
+  const editor = page.getByRole("textbox", { name: "Markdown document" });
+  await editor.fill("  First paragraph");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Second paragraph");
+  await expect(page.locator(".cm-line").nth(1)).toHaveText("Second paragraph");
+  expect(
+    await page
+      .locator(".cm-line")
+      .nth(1)
+      .evaluate((element) => element.textContent),
+  ).toBe("Second paragraph");
+});

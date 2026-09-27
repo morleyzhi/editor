@@ -1,4 +1,4 @@
-import { EditorState, Transaction } from "@codemirror/state";
+import { EditorSelection, EditorState, Transaction } from "@codemirror/state";
 import {
   EditorView,
   keymap,
@@ -14,11 +14,18 @@ import {
   redo,
   undoDepth,
   redoDepth,
+  insertNewline,
+  insertNewlineAndIndent,
 } from "@codemirror/commands";
-import { markdown, markdownKeymap } from "@codemirror/lang-markdown";
+import {
+  markdown,
+  insertNewlineContinueMarkupCommand,
+  deleteMarkupBackward,
+} from "@codemirror/lang-markdown";
 import {
   syntaxHighlighting,
   defaultHighlightStyle,
+  syntaxTree,
 } from "@codemirror/language";
 import DOMPurify from "dompurify";
 import {
@@ -37,6 +44,7 @@ import {
   removeFlags,
 } from "./findings";
 import { listDrafts, saveDraft, deleteDraft, type Draft } from "./storage";
+import { markdownLines } from "./markdown-lines";
 import "./style.css";
 const $ = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;
@@ -84,10 +92,52 @@ function escape(text: string) {
       ]!,
   );
 }
+const continueList = insertNewlineContinueMarkupCommand({
+  nonTightLists: false,
+});
+function continueListOrExit(target: Parameters<typeof continueList>[0]) {
+  const { state, dispatch } = target;
+  const ranges = state.selection.ranges;
+  if (ranges.length === 1 && ranges[0].empty) {
+    const line = state.doc.lineAt(ranges[0].from);
+    if (
+      ranges[0].from === line.to &&
+      /^\s*(?:[-+*]|\d+[.)])\s*$/.test(line.text)
+    ) {
+      let node = syntaxTree(state).resolveInner(line.from, 1);
+      while (node && node.name !== "FencedCode" && node.name !== "CodeBlock")
+        node = node.parent!;
+      if (!node) {
+        dispatch(
+          state.update({
+            changes: { from: line.from, to: line.to, insert: state.lineBreak },
+            selection: EditorSelection.cursor(
+              line.from + state.lineBreak.length,
+            ),
+            scrollIntoView: true,
+            userEvent: "input",
+          }),
+        );
+        return true;
+      }
+    }
+  }
+  if (continueList(target)) return true;
+  let node = syntaxTree(state).resolveInner(state.selection.main.head, -1);
+  while (node && node.name !== "FencedCode" && node.name !== "CodeBlock")
+    node = node.parent!;
+  return node ? insertNewlineAndIndent(target) : insertNewline(target);
+}
 const extensions = [
   history({ minDepth: 1000 }),
-  keymap.of([...historyKeymap, ...defaultKeymap, ...markdownKeymap]),
-  markdown(),
+  keymap.of([
+    ...historyKeymap,
+    { key: "Enter", run: continueListOrExit },
+    { key: "Backspace", run: deleteMarkupBackward },
+    ...defaultKeymap,
+  ]),
+  markdown({ addKeymap: false }),
+  markdownLines,
   syntaxHighlighting(defaultHighlightStyle),
   drawSelection(),
   highlightActiveLine(),
