@@ -509,6 +509,21 @@ $("drawer-backdrop").onclick = closeSidebars;
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeSidebars();
 });
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      !event.altKey &&
+      !event.shiftKey &&
+      event.key.toLowerCase() === "s"
+    ) {
+      event.preventDefault();
+      void saveNow();
+    }
+  },
+  true,
+);
 $("new").onclick = async () => {
   await loadDraft(newDraft());
   await saveNow();
