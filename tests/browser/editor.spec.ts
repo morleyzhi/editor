@@ -62,6 +62,9 @@ test("requires acknowledging a finding before editing it", async ({ page }) => {
   await page.getByRole("button", { name: "Show editor" }).click();
   await page.getByRole("button", { name: "Run this pass" }).click();
   await expect(page.locator(".finding")).toHaveText("very");
+  await expect(page.locator("#toast")).toHaveText("Sand off filler words complete: 1 finding.");
+  await expect(page.locator("#completed")).toHaveText("1 / 20");
+  await page.getByRole("button", { name: "Close editor" }).click();
   await editor.fill("Replaced");
   await expect(editor).toHaveText("A very useful piece.");
   await page.locator(".finding").click();
@@ -70,6 +73,79 @@ test("requires acknowledging a finding before editing it", async ({ page }) => {
   await expect(page.locator(".finding")).toHaveCount(0);
   await editor.fill("Replaced");
   await expect(editor).toHaveText("Replaced");
+});
+test("shows pass progress while Jev responds", async ({ page }) => {
+  await page.route("**/api/settings", (route) =>
+    route.fulfill({ json: { hasKey: true } }),
+  );
+  await page.reload();
+  let finish: () => void = () => {};
+  const response = new Promise<void>((resolve) => (finish = resolve));
+  await page.route("**/api/pass", async (route) => {
+    await response;
+    const body = route.request().postDataJSON();
+    await route.fulfill({
+      json: {
+        answers: Object.fromEntries(
+          body.state.spans.map((s: { id: string }) => [s.id, { noul: 0.1 }]),
+        ),
+      },
+    });
+  });
+  await page.getByRole("textbox", { name: "Markdown document" }).fill("A concise draft.");
+  await page.getByRole("button", { name: "Show editor" }).click();
+  await page.getByRole("button", { name: "Run this pass" }).click();
+  await expect(page.locator("#editor-panel")).toBeVisible();
+  await expect(page.locator("#editor-panel")).toHaveAttribute("aria-busy", "true");
+  await expect(page.locator("#pass-status")).toHaveClass(/running/);
+  await expect(page.locator("#pass-status")).toContainText("Reviewing");
+  await expect(page.getByRole("button", { name: "Running pass…" })).toBeDisabled();
+  finish();
+  await expect(page.locator("#editor-panel")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator("#toast")).toHaveText("Sand off filler words complete: 0 findings.");
+  await expect(page.locator("#pass-status")).toHaveText("Pass complete. No findings.");
+});
+test("shows a pass error in a toast", async ({ page }) => {
+  await page.route("**/api/settings", (route) =>
+    route.fulfill({ json: { hasKey: true } }),
+  );
+  await page.reload();
+  await page.route("**/api/pass", (route) =>
+    route.fulfill({ status: 502, json: { error: "Jev is unavailable." } }),
+  );
+  await page.getByRole("textbox", { name: "Markdown document" }).fill("A short draft.");
+  await page.getByRole("button", { name: "Show editor" }).click();
+  await page.getByRole("button", { name: "Run this pass" }).click();
+  await expect(page.locator("#toast")).toHaveText("Sand off filler words: Jev is unavailable.");
+  await expect(page.locator("#editor-panel")).toHaveAttribute("aria-busy", "false");
+});
+test("restores pass findings after reload", async ({ page }) => {
+  await page.route("**/api/settings", (route) =>
+    route.fulfill({ json: { hasKey: true } }),
+  );
+  await page.reload();
+  await page.route("**/api/pass", (route) => {
+    const body = route.request().postDataJSON();
+    return route.fulfill({
+      json: {
+        answers: Object.fromEntries(
+          body.state.spans.map((span: { id: string; text: string }) => [
+            span.id,
+            { noul: span.text === "very" ? 0.95 : 0.1 },
+          ]),
+        ),
+      },
+    });
+  });
+  await page.getByRole("textbox", { name: "Markdown document" }).fill("A very useful piece.");
+  await page.getByRole("button", { name: "Show editor" }).click();
+  await page.getByRole("button", { name: "Run this pass" }).click();
+  await expect(page.locator(".finding")).toHaveText("very");
+  await expect(page.locator("#save-status")).toHaveText("Saved on this device");
+  await page.reload();
+  await expect(page.locator(".finding")).toHaveText("very");
+  await page.getByRole("button", { name: "Show editor" }).click();
+  await expect(page.locator("#completed")).toHaveText("1 / 20");
 });
 test("keeps a long document virtualized", async ({ page }) => {
   const text = Array.from(
@@ -151,7 +227,6 @@ test("acknowledges only findings currently on screen", async ({ page }) => {
   await page.getByRole("button", { name: "Show editor" }).click();
   await page.getByRole("button", { name: "Run this pass" }).click();
   await expect(page.locator("#flag-count")).toHaveText("100 open findings");
-  await page.getByRole("button", { name: "Show editor" }).click();
   const button = page.getByRole("button", { name: /Acknowledge visible/ });
   await expect(button).toBeVisible();
   await button.click();
@@ -185,8 +260,8 @@ test("discards a pass when the text changes", async ({ page }) => {
   await editor.fill("A very useful piece.");
   await page.getByRole("button", { name: "Show editor" }).click();
   await page.getByRole("button", { name: "Run this pass" }).click();
-  await page.getByRole("button", { name: "Show editor" }).click();
   await expect(page.getByRole("button", { name: "Cancel pass" })).toBeVisible();
+  await page.getByRole("button", { name: "Close editor" }).click();
   await editor.fill("A different piece.");
   release();
   await expect(page.locator("#pass-status")).toContainText("Text changed");
@@ -530,6 +605,8 @@ test("double-clicking a finding selects the word before acknowledgement", async 
     .fill("A very useful piece.");
   await page.getByRole("button", { name: "Show editor" }).click();
   await page.getByRole("button", { name: "Run this pass" }).click();
+  await expect(page.locator(".finding")).toHaveText("very");
+  await page.getByRole("button", { name: "Close editor" }).click();
   await page.locator(".finding").dblclick();
   expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(
     "very",

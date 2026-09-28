@@ -64,7 +64,8 @@ let drafts: Draft[] = [],
   preview = false;
 let saving: ReturnType<typeof setTimeout>,
   statsTimer: ReturnType<typeof setTimeout>,
-  previewTimer: ReturnType<typeof setTimeout>;
+  previewTimer: ReturnType<typeof setTimeout>,
+  toastTimer: ReturnType<typeof setTimeout>;
 let runController: AbortController | null = null,
   version = 0,
   statsVersion = 0,
@@ -82,9 +83,10 @@ const worker = new Worker(new URL("./markdown.worker.ts", import.meta.url), {
   type: "module",
 });
 function notify(message: string) {
+  clearTimeout(toastTimer);
   $("toast").textContent = message;
   $("toast").hidden = false;
-  setTimeout(() => ($("toast").hidden = true), 5000);
+  toastTimer = setTimeout(() => ($("toast").hidden = true), 5000);
 }
 function escape(text: string) {
   return text.replace(
@@ -402,6 +404,9 @@ function updateControls() {
   $("ack-visible").textContent = `Acknowledge visible (${visible.length})`;
   $<HTMLButtonElement>("run").disabled =
     !!runController || !view.state.doc.length;
+  $("run").textContent = runController ? "Running pass…" : "Run this pass";
+  $("editor-panel").setAttribute("aria-busy", String(!!runController));
+  $("pass-status").classList.toggle("running", !!runController);
   $("cancel").hidden = !runController;
 }
 function renderPreview() {
@@ -507,7 +512,6 @@ async function runPass() {
     return;
   }
   setPreview(false);
-  closeSidebars();
   const controller = new AbortController();
   runController = controller;
   updateControls();
@@ -521,9 +525,8 @@ async function runPass() {
     const count = batches.reduce((total, batch) => total + batch.length, 0);
     let reviewed = 0;
     for (const batch of batches) {
-      reviewed += batch.length;
       $("pass-status").textContent =
-        `Reading ${reviewed} of ${count} ${pass.unit}s…`;
+        `Reviewing ${reviewed + 1}–${reviewed + batch.length} of ${count} ${pass.unit}s…`;
       const result = await api(
         "pass",
         makeRequest(text, batch, pass),
@@ -531,6 +534,7 @@ async function runPass() {
         controller.signal,
       );
       findings.push(...readAnswers(result.answers, batch, pass));
+      reviewed += batch.length;
     }
     if (
       controller.signal.aborted ||
@@ -548,10 +552,13 @@ async function runPass() {
     $("pass-status").textContent = findings.length
       ? `${findings.length} findings. Select a highlight to review.`
       : "Pass complete. No findings.";
+    notify(`${pass.name} complete: ${findings.length} finding${findings.length === 1 ? "" : "s"}.`);
   } catch (error) {
-    if (!controller.signal.aborted)
-      $("pass-status").textContent =
-        error instanceof Error ? error.message : "Pass failed. Try again.";
+    if (!controller.signal.aborted) {
+      const message = error instanceof Error ? error.message : "Pass failed. Try again.";
+      $("pass-status").textContent = message;
+      notify(`${pass.name}: ${message}`);
+    }
   } finally {
     if (runController === controller) runController = null;
     updateControls();

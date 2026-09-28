@@ -444,6 +444,27 @@ header {
   margin: 5px 0 10px;
   min-height: 16px;
 }
+#pass-status.running {
+  color: #d5e6d7;
+}
+#pass-status.running::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border: 2px solid #6b8c78;
+  border-top-color: #d5e6d7;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: pass-spin 0.8s linear infinite;
+}
+@keyframes pass-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #pass-status.running::before { animation: none; }
+}
 #ack-visible {
   border: 1px solid #46534e;
   background: #293a32;
