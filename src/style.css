@@ -126,9 +126,9 @@ main {
   background: #1d2225;
 }
 header {
-  height: 54px;
+  height: 50px;
   border-bottom: 1px solid #364147;
-  padding: 0 30px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -137,71 +137,41 @@ header {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 5px;
   flex-shrink: 0;
   margin-left: auto;
 }
 .header-actions button {
   border: 1px solid #46534e;
-  font-size: 11px;
-  padding: 7px 11px;
+  font-size: 12px;
+  padding: 6px 9px;
 }
-#save-status {
+#flag-count {
   color: #a4b0aa;
-  font-size: 10px;
+  font-size: 11px;
+  margin-right: 8px;
 }
 .document {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  padding: 16px clamp(24px, 4vw, 72px) 0;
-  max-width: 1100px;
+  padding: 0 20px;
+  max-width: 820px;
   width: 100%;
   margin: 0 auto;
 }
-.document-top {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-bottom: 10px;
-  gap: 10px;
-}
-.toolbar {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-  color: #a4b0aa;
-}
-.toolbar button {
-  font-size: 11px;
-  padding: 6px 9px;
-}
-.toolbar button:first-child,
-.toolbar button:nth-child(2) {
-  font-size: 18px;
-  line-height: 14px;
-}
-.toolbar .active {
-  background: #303a3d;
-  color: #d5e6d7;
-}
-.divider {
-  height: 16px;
-  border-left: 1px solid #46534e;
-  margin: 0 8px;
-}
 #title {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   outline: none;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(30px, 3vw, 40px);
-  letter-spacing: -1px;
+  font-size: 18px;
   color: #eaf3e8;
   margin: 0;
-  padding: 0 0 8px;
+  padding: 0 6px;
   font-weight: 400;
 }
 #title::placeholder {
@@ -210,15 +180,6 @@ header {
 #title:focus-visible {
   outline: none;
 }
-.document-meta {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  color: #a4b0aa;
-  font-size: 10px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #364147;
-}
 #writing,
 #rendered {
   min-height: 0;
@@ -226,7 +187,7 @@ header {
   overflow: auto;
 }
 #writing {
-  margin: 6px -10px 0;
+  margin: 0 -10px;
 }
 .cm-editor {
   background: transparent;
@@ -243,7 +204,7 @@ header {
   overscroll-behavior: contain;
 }
 .cm-content {
-  padding: 12px 10px 180px;
+  padding: 28px 10px 180px;
   caret-color: #9ed8b4;
 }
 .cm-line {
@@ -378,17 +339,6 @@ header {
 }
 #rendered a {
   color: #9ed8b4;
-}
-footer {
-  height: 30px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  border-top: 1px solid #364147;
-  color: #a4b0aa;
-  font-size: 10px;
-  gap: 15px;
 }
 .editor-pane {
   border-left: 1px solid #364147;
@@ -571,14 +521,6 @@ dialog input {
   font-family: Georgia, serif;
 }
 
-#crumb {
-  color: #a4b0aa;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 35vw;
-}
 #library-toggle,
 #editor-toggle {
   border: 1px solid #46534e;
@@ -622,8 +564,7 @@ dialog input {
   margin: 0;
 }
 .drawer-heading button {
-  font-size: 22px;
-  line-height: 1;
+  font-size: 12px;
 }
 #rendered .graf-space {
   display: block;
@@ -638,26 +579,26 @@ dialog input {
 }
 @media (max-width: 580px) {
   header {
-    height: 50px;
-    padding: 0 14px;
-  }
-  #crumb {
-    display: none;
+    height: auto;
+    min-height: 50px;
+    flex-wrap: wrap;
+    gap: 5px 8px;
+    padding: 7px 14px;
   }
   .header-actions {
-    gap: 6px;
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+    gap: 4px;
   }
-  #save-status {
-    display: none;
+  .header-actions button {
+    padding: 5px 7px;
   }
   .document {
-    padding: 12px 20px 0;
-  }
-  .document-top {
-    margin-bottom: 8px;
+    padding: 0 20px;
   }
   #title {
-    font-size: 32px;
+    font-size: 16px;
   }
   .cm-scroller {
     font-size: 17px !important;

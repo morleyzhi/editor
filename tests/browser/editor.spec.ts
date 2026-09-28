@@ -32,7 +32,7 @@ test("renders Markdown without executing embedded scripts", async ({
     .fill(
       '# A heading\n\n| One | Two |\n| --- | --- |\n| A | B |\n\n~~gone~~ **bold**\n\n<script>document.title="unsafe"</script>\n<img src=x onerror="document.title=\'unsafe\'">',
     );
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.keyboard.press("ControlOrMeta+Shift+P");
   await expect(page.locator("#rendered h1")).toHaveText("A heading");
   await expect(page.locator("#rendered table")).toBeVisible();
   await expect(page.locator("#rendered s")).toHaveText("gone");
@@ -84,7 +84,6 @@ test("keeps a long document virtualized", async ({ page }) => {
   await expect(page.getByRole("textbox", { name: "Draft title" })).toHaveValue(
     "Long article",
   );
-  await expect(page.locator("#words")).toContainText("words");
   expect(await page.locator(".cm-line").count()).toBeLessThan(200);
   const elapsed = await page.evaluate(async () => {
     const scroller = document.querySelector(".cm-scroller")!;
@@ -108,6 +107,16 @@ test("shows drafts on a narrow screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Show drafts" }).click();
   await expect(page.getByRole("button", { name: "New draft" })).toBeVisible();
+});
+
+test("keeps writing controls in the top bar", async ({ page }) => {
+  await expect(page.locator("header #title")).toBeVisible();
+  await expect(page.locator("header #undo")).toHaveText("Undo");
+  await expect(page.locator("header #redo")).toHaveText("Redo");
+  await expect(page.locator("header #delete")).toHaveText("Delete");
+  await expect(page.getByRole("button", { name: "Preview" })).toHaveCount(0);
+  await expect(page.locator("#words, #read-time")).toHaveCount(0);
+  await expect(page.locator("#save-status")).toBeHidden();
 });
 
 test("acknowledges only findings currently on screen", async ({ page }) => {
@@ -288,7 +297,7 @@ test("gives single newlines paragraph spacing in write and preview", async ({
   const gap = second!.y - first!.y - lineHeight;
   expect(gap).toBeGreaterThan(5);
   expect(gap).toBeLessThan(lineHeight);
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.keyboard.press("ControlOrMeta+Shift+P");
   await expect(page.locator("#rendered .graf-space")).toHaveCount(1);
   const previewGap = await page
     .locator("#rendered .graf-space")
@@ -324,7 +333,7 @@ for (const [listText, tag] of [
     const after = boxes[3]!.y - boxes[2]!.y - lineHeight;
     expect(before).toBeGreaterThan(5);
     expect(Math.abs(before - after)).toBeLessThan(1);
-    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.keyboard.press("ControlOrMeta+Shift+P");
     const paragraphs = page.locator("#rendered > p");
     const first = await paragraphs.first().boundingBox();
     const list = await page.locator(`#rendered > ${tag}`).boundingBox();
@@ -350,7 +359,7 @@ test("continues bullets once and exits on an empty bullet", async ({
   await expect(page.locator(".cm-line").last()).toHaveText("Next paragraph");
   const markdown = await page.locator(".cm-content").getAttribute("aria-label");
   expect(markdown).toBe("Markdown document");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.keyboard.press("ControlOrMeta+Shift+P");
   await expect(page.locator("#rendered li")).toHaveCount(2);
   await expect(page.locator("#rendered p").last()).toHaveText("Next paragraph");
 });
@@ -377,7 +386,7 @@ test("returns to prose after a list below a paragraph", async ({ page }) => {
   const before = boxes[1]!.y - boxes[0]!.y - lineHeight;
   const after = boxes[3]!.y - boxes[2]!.y - lineHeight;
   expect(Math.abs(before - after)).toBeLessThan(1);
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.keyboard.press("ControlOrMeta+Shift+P");
   await expect(page.locator("#rendered > p").last()).toHaveText("After");
 });
 
@@ -391,7 +400,7 @@ test("backspace exits an empty bullet", async ({ page }) => {
   await expect(page.locator(".cm-line").last()).toHaveText("After");
   await expect(page.locator(".cm-line").last()).not.toHaveClass(/cm-list-line/);
   await expect(page.locator(".cm-list-gap")).toHaveCount(1);
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.keyboard.press("ControlOrMeta+Shift+P");
   await expect(page.locator("#rendered > p").last()).toHaveText("After");
 });
 
@@ -404,7 +413,7 @@ for (const marker of ["-", "*"]) {
     await page.keyboard.press("Space");
     await expect(page.locator(".cm-bullet")).toHaveText("•");
     await page.keyboard.type("Item");
-    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.keyboard.press("ControlOrMeta+Shift+P");
     await expect(page.locator("#rendered li")).toHaveText("Item");
   });
 }
@@ -434,7 +443,7 @@ test("keeps list items compact and styles pasted fenced code", async ({
   const first = await page.locator(".cm-list-line").nth(0).boundingBox();
   const second = await page.locator(".cm-list-line").nth(1).boundingBox();
   expect(second!.y - first!.y - first!.height).toBeLessThan(3);
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.keyboard.press("ControlOrMeta+Shift+P");
   await expect(page.locator("#rendered pre code")).toContainText(
     "console.log(x);",
   );
@@ -453,7 +462,7 @@ test("styles a code fence while typing and after closing it", async ({
   await page.keyboard.press("Enter");
   await page.keyboard.type("```");
   await expect(page.locator(".cm-code-line")).toHaveCount(3);
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.keyboard.press("ControlOrMeta+Shift+P");
   await expect(page.locator("#rendered pre code")).toContainText(
     "const answer = 42;",
   );

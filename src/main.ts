@@ -51,11 +51,11 @@ const $ = <T extends HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 $("app").innerHTML = `
 <div id="drawer-backdrop" hidden></div>
-<aside class="library" id="drafts-panel" aria-label="Drafts"><div class="drawer-heading"><h2>Drafts</h2><button id="close-library" aria-label="Close drafts">×</button></div><button id="new" class="primary new">New draft</button><nav id="drafts" aria-label="Drafts"></nav><div class="library-bottom"><button id="import">Import Markdown</button><button id="settings">Settings</button></div></aside>
-<main><header><button id="library-toggle" aria-label="Show drafts" aria-expanded="false" aria-controls="drafts-panel">Drafts</button><span id="crumb">Untitled</span><div class="header-actions"><span id="save-status" role="status">Saved</span><button id="export">Export</button><button id="editor-toggle" aria-label="Show editor" aria-expanded="false" aria-controls="editor-panel">Editor</button></div></header>
-<section class="document"><div class="document-top"><div class="toolbar"><button id="undo" title="Undo (⌘/Ctrl Z)" aria-label="Undo">↶</button><button id="redo" title="Redo (⌘/Ctrl Shift Z)" aria-label="Redo">↷</button><span class="divider"></span><button id="write" class="active">Write</button><button id="preview">Preview</button><button id="delete" title="Delete draft" aria-label="Delete draft">⌫</button></div></div><input id="title" aria-label="Draft title" placeholder="Untitled draft" maxlength="300"><div class="document-meta"><span id="words">0 words</span><span>·</span><span id="read-time">1 min read</span></div><div id="writing"></div><article id="rendered" hidden></article><footer><span id="flag-count">No open findings</span></footer></section></main>
-<aside class="editor-pane" id="editor-panel" aria-label="Editor"><div class="drawer-heading"><h2>Editor</h2><button id="close-editor" aria-label="Close editor">×</button></div><div class="pass-label">Editing passes <span id="completed">0 / 20</span></div><div id="passes"></div><div class="run-area"><p id="pass-detail"></p><button id="run" class="primary">Run this pass</button><button id="cancel" hidden>Cancel pass</button><button id="ack-visible" hidden>Acknowledge visible</button><p id="pass-status" role="status"></p></div></aside>
-<dialog id="settings-dialog"><form id="settings-form"><div class="dialog-heading"><h2>Settings</h2><button type="button" id="close-settings" aria-label="Close settings">×</button></div><p>Your Jev key connects editing passes to TypeSafe.</p><label for="api-key">Jev API key</label><input id="api-key" type="password" autocomplete="off" placeholder="Enter your API key"><p class="help">Your key stays in this local server’s memory for up to 24 hours. Other origins cannot read it. Enter it again after restarting the server.</p><div id="key-status" role="status"></div><div class="dialog-actions"><button type="button" id="forget-key">Forget key</button><button class="primary" type="submit">Save key</button></div></form></dialog><input id="file" type="file" accept=".md,.markdown,.txt,text/plain,text/markdown" hidden><div id="toast" role="status" hidden></div>`;
+<aside class="library" id="drafts-panel" aria-label="Drafts"><div class="drawer-heading"><h2>Drafts</h2><button id="close-library" aria-label="Close drafts">Close</button></div><button id="new" class="primary new">New draft</button><nav id="drafts" aria-label="Drafts"></nav><div class="library-bottom"><button id="import">Import Markdown</button><button id="settings">Settings</button></div></aside>
+<main><header><button id="library-toggle" aria-label="Show drafts" aria-expanded="false" aria-controls="drafts-panel">Drafts</button><input id="title" aria-label="Draft title" placeholder="Untitled draft" maxlength="300"><div class="header-actions"><span id="flag-count" hidden>No open findings</span><button id="undo" title="Undo (⌘/Ctrl Z)">Undo</button><button id="redo" title="Redo (⌘/Ctrl Shift Z)">Redo</button><button id="export">Export</button><button id="delete" aria-label="Delete draft">Delete</button><button id="editor-toggle" aria-label="Show editor" aria-expanded="false" aria-controls="editor-panel">Editor</button></div><span id="save-status" hidden></span></header>
+<section class="document"><div id="writing"></div><article id="rendered" hidden></article></section></main>
+<aside class="editor-pane" id="editor-panel" aria-label="Editor"><div class="drawer-heading"><h2>Editor</h2><button id="close-editor" aria-label="Close editor">Close</button></div><div class="pass-label">Editing passes <span id="completed">0 / 20</span></div><div id="passes"></div><div class="run-area"><p id="pass-detail"></p><button id="run" class="primary">Run this pass</button><button id="cancel" hidden>Cancel pass</button><button id="ack-visible" hidden>Acknowledge visible</button><p id="pass-status" role="status"></p></div></aside>
+<dialog id="settings-dialog"><form id="settings-form"><div class="dialog-heading"><h2>Settings</h2><button type="button" id="close-settings" aria-label="Close settings">Close</button></div><p>Your Jev key connects editing passes to TypeSafe.</p><label for="api-key">Jev API key</label><input id="api-key" type="password" autocomplete="off" placeholder="Enter your API key"><p class="help">Your key stays in this local server’s memory for up to 24 hours. Other origins cannot read it. Enter it again after restarting the server.</p><div id="key-status" role="status"></div><div class="dialog-actions"><button type="button" id="forget-key">Forget key</button><button class="primary" type="submit">Save key</button></div></form></dialog><input id="file" type="file" accept=".md,.markdown,.txt,text/plain,text/markdown" hidden><div id="toast" role="status" hidden></div>`;
 let drafts: Draft[] = [],
   current: Draft,
   view: EditorView,
@@ -63,7 +63,6 @@ let drafts: Draft[] = [],
   hasKey = false,
   preview = false;
 let saving: ReturnType<typeof setTimeout>,
-  statsTimer: ReturnType<typeof setTimeout>,
   previewTimer: ReturnType<typeof setTimeout>;
 let runController: AbortController | null = null,
   version = 0,
@@ -186,7 +185,6 @@ const extensions = [
   EditorView.updateListener.of((update) => {
     if (update.docChanged) {
       cancelRun("Text changed. Run the pass again when ready.");
-      scheduleStats();
       if (preview) renderPreview();
     }
     if (
@@ -260,16 +258,6 @@ function scheduleSave() {
   $("save-status").textContent = "Saving…";
   clearTimeout(saving);
   saving = setTimeout(saveNow, 300);
-}
-function scheduleStats() {
-  clearTimeout(statsTimer);
-  statsTimer = setTimeout(updateStats, 200);
-}
-function updateStats() {
-  const count = view.state.doc.toString().match(/\S+/g)?.length || 0;
-  $("words").textContent = `${count.toLocaleString()} words`;
-  $("read-time").textContent =
-    `${Math.max(1, Math.ceil(count / 225))} min read`;
 }
 function renderDrafts() {
   $("drafts").innerHTML = drafts
@@ -362,10 +350,8 @@ async function loadDraft(
     annotations: Transaction.addToHistory.of(false),
   });
   $<HTMLInputElement>("title").value = draft.title;
-  $("crumb").textContent = draft.title || "Untitled";
   renderDrafts();
   renderPasses();
-  updateStats();
   updateControls();
   if (preview) renderPreview();
   $("app").inert = false;
@@ -393,6 +379,7 @@ function updateControls() {
   $("flag-count").textContent = findings.length
     ? `${findings.length} open finding${findings.length === 1 ? "" : "s"}`
     : "No open findings";
+  $("flag-count").hidden = !findings.length;
   const visible = preview ? [] : visibleFindings(view);
   $("ack-visible").hidden = !visible.length;
   $("ack-visible").textContent = `Acknowledge visible (${visible.length})`;
@@ -421,8 +408,6 @@ function setPreview(value: boolean) {
   preview = value;
   $("writing").hidden = value;
   $("rendered").hidden = !value;
-  $("write").classList.toggle("active", !value);
-  $("preview").classList.toggle("active", value);
   if (value) renderPreview();
   else {
     view.requestMeasure();
@@ -584,6 +569,17 @@ document.addEventListener(
   },
   true,
 );
+document.addEventListener("keydown", (event) => {
+  if (
+    (event.metaKey || event.ctrlKey) &&
+    event.shiftKey &&
+    !event.altKey &&
+    event.key.toLowerCase() === "p"
+  ) {
+    event.preventDefault();
+    setPreview(!preview);
+  }
+});
 $("new").onclick = async () => {
   await loadDraft(newDraft());
   await saveNow();
@@ -608,7 +604,6 @@ $("drafts").onclick = (event) => {
   if (draft && draft.id !== current.id) void loadDraft(draft);
 };
 $("title").oninput = () => {
-  $("crumb").textContent = $<HTMLInputElement>("title").value || "Untitled";
   scheduleSave();
 };
 $("passes").onclick = (event) => {
@@ -627,8 +622,6 @@ $("redo").onclick = () => {
   redo(view);
   view.focus();
 };
-$("write").onclick = () => setPreview(false);
-$("preview").onclick = () => setPreview(true);
 $("run").onclick = runPass;
 $("cancel").onclick = () => cancelRun("Pass canceled.");
 $("ack-visible").onclick = () => {
