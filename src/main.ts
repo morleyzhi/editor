@@ -70,6 +70,7 @@ let runController: AbortController | null = null,
   saveQueue = Promise.resolve(),
   dirty = false,
   pendingSaves = 0;
+let releaseDraftLock: (() => void) | undefined;
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
   if (node.tagName === "INPUT") {
     node.setAttribute("type", "checkbox");
@@ -274,14 +275,56 @@ function renderDrafts() {
   $("drafts").innerHTML = drafts
     .map(
       (d) =>
-        `<button class="draft ${d.id === current?.id ? "selected" : ""}" data-id="${d.id}"><span><strong>${escape(d.title || "Untitled draft")}</strong><small>${new Date(d.updated).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</small></span></button>`,
+        `<a class="draft ${d.id === current?.id ? "selected" : ""}" href="?draft=${encodeURIComponent(d.id)}" data-id="${d.id}" ${d.id === current?.id ? 'aria-current="page"' : ""}><span><strong>${escape(d.title || "Untitled draft")}</strong><small>${new Date(d.updated).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</small></span></a>`,
     )
     .join("");
 }
-async function loadDraft(draft: Draft) {
+function draftUrl(id: string) {
+  const url = new URL(location.href);
+  url.searchParams.set("draft", id);
+  return url;
+}
+function lockDraft(id: string): Promise<(() => void) | null> {
+  if (!navigator.locks) return Promise.resolve(() => {});
+  return new Promise((resolve) => {
+    void navigator.locks.request(
+      `editor-draft-${id}`,
+      { ifAvailable: true },
+      (lock) => {
+        if (!lock) {
+          resolve(null);
+          return;
+        }
+        return new Promise<void>((release) => resolve(release));
+      },
+    );
+  });
+}
+async function loadDraft(
+  draft: Draft,
+  navigation: "push" | "replace" | "none" = "push",
+) {
+  $("app").inert = true;
+  $<HTMLInputElement>("title").disabled = true;
+  const nextLock =
+    draft.id === current?.id ? releaseDraftLock : await lockDraft(draft.id);
+  if (!nextLock) {
+    $("app").inert = false;
+    $<HTMLInputElement>("title").disabled = false;
+    notify(
+      "This draft is open in another tab. Close it there before editing here.",
+    );
+    return false;
+  }
   cancelRun();
   if (current) await saveNow();
+  if (draft.id !== current?.id) releaseDraftLock?.();
+  releaseDraftLock = nextLock;
   current = draft;
+  if (navigation === "push")
+    window.history.pushState(null, "", draftUrl(draft.id));
+  if (navigation === "replace")
+    window.history.replaceState(null, "", draftUrl(draft.id));
   closeSidebars();
   let state: EditorState;
   try {
@@ -325,6 +368,9 @@ async function loadDraft(draft: Draft) {
   updateStats();
   updateControls();
   if (preview) renderPreview();
+  $("app").inert = false;
+  $<HTMLInputElement>("title").disabled = false;
+  return true;
 }
 function renderPasses() {
   let group = "";
@@ -544,8 +590,20 @@ $("new").onclick = async () => {
   $("title").focus();
 };
 $("drafts").onclick = (event) => {
-  const id = (event.target as HTMLElement).closest<HTMLElement>("[data-id]")
-    ?.dataset.id;
+  const click = event as MouseEvent;
+  const link = (event.target as HTMLElement).closest<HTMLAnchorElement>(
+    "a[data-id]",
+  );
+  if (!link) return;
+  if (click.metaKey || click.ctrlKey) {
+    event.preventDefault();
+    const tab = window.open(link.href, "_blank");
+    if (tab) tab.opener = null;
+    return;
+  }
+  if (click.shiftKey || click.altKey || click.button !== 0) return;
+  event.preventDefault();
+  const id = link.dataset.id;
   const draft = drafts.find((d) => d.id === id);
   if (draft && draft.id !== current.id) void loadDraft(draft);
 };
@@ -644,6 +702,8 @@ $("delete").onclick = async () => {
   await saveQueue;
   const id = current.id;
   await deleteDraft(id);
+  releaseDraftLock?.();
+  releaseDraftLock = undefined;
   drafts = drafts.filter((d) => d.id !== id);
   current = undefined as unknown as Draft;
   await loadDraft(drafts[0] || newDraft());
@@ -659,14 +719,29 @@ window.addEventListener("scroll", () => requestAnimationFrame(updateControls), {
   passive: true,
 });
 window.addEventListener("resize", () => requestAnimationFrame(updateControls));
+window.addEventListener("popstate", () => {
+  const id = new URL(location.href).searchParams.get("draft");
+  const draft = drafts.find((item) => item.id === id);
+  if (draft) void loadDraft(draft, "none");
+});
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && dirty) void saveNow();
 });
-// A single writer prevents two tabs from replacing each other’s saved drafts.
 async function start() {
   try {
     drafts = await listDrafts();
-    await loadDraft(drafts[0] || newDraft());
+    const id = new URL(location.href).searchParams.get("draft");
+    const draft =
+      drafts.find((item) => item.id === id) || drafts[0] || newDraft();
+    if (!(await loadDraft(draft, "replace"))) {
+      $("app").innerHTML =
+        `<div class="locked"><h1>${escape(draft.title || "Untitled draft")}</h1><p>This draft is open for editing in another tab. Close that tab and reload to edit here.</p><article id="rendered"></article></div>`;
+      worker.postMessage({
+        text: String(draft.state.doc || ""),
+        version: ++version,
+      });
+      return;
+    }
     await saveNow();
     view.scrollDOM.addEventListener(
       "scroll",
@@ -682,18 +757,4 @@ async function start() {
     notify(`Could not open the workspace: ${(error as Error).message}`);
   }
 }
-if (navigator.locks)
-  void navigator.locks.request(
-    "editor-writer",
-    { ifAvailable: true },
-    async (lock) => {
-      if (!lock) {
-        $("app").innerHTML =
-          '<div class="locked"><h1>Editor is open in another tab.</h1><p>Close that tab, then reload this one to continue writing.</p><p>Reload this page after closing the other tab.</p></div>';
-        return;
-      }
-      await start();
-      await new Promise(() => {});
-    },
-  );
-else void start();
+void start();

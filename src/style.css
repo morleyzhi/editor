@@ -77,6 +77,8 @@ button[hidden],
 }
 .draft {
   display: flex;
+  color: inherit;
+  text-decoration: none;
   align-items: center;
   gap: 12px;
   width: 100%;
@@ -234,7 +236,7 @@ header {
 }
 .cm-scroller {
   font:
-    18px/1.85 Georgia,
+    18px/1.55 Georgia,
     "Times New Roman",
     serif !important;
   overflow: auto;
@@ -245,13 +247,13 @@ header {
   caret-color: #9ed8b4;
 }
 .cm-line {
-  padding: 0 0 0.6em !important;
+  padding: 0 0 1em !important;
 }
 .cm-list-line {
   padding: 0 0 0 10px !important;
 }
 .cm-list-end {
-  padding-bottom: 0.6em !important;
+  padding-bottom: 1em !important;
 }
 .cm-list-gap {
   height: 0;
@@ -326,7 +328,7 @@ header {
 }
 #rendered {
   font:
-    18px/1.85 Georgia,
+    18px/1.55 Georgia,
     serif;
   padding: 15px 0 120px;
   overflow-wrap: anywhere;
@@ -625,7 +627,7 @@ dialog input {
 }
 #rendered .graf-space {
   display: block;
-  height: 0.85em;
+  height: 1em;
 }
 #rendered p {
   margin: 0 0 1.2em;

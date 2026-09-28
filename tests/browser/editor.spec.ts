@@ -180,7 +180,9 @@ test("keeps draft text separate when switching drafts", async ({ page }) => {
     .getByRole("textbox", { name: "Markdown document" })
     .fill("First text");
   await page.getByRole("button", { name: "Show drafts" }).click();
+  const firstUrl = page.url();
   await page.getByRole("button", { name: "New draft" }).click();
+  await expect(page).not.toHaveURL(firstUrl);
   await page
     .getByRole("textbox", { name: "Draft title" })
     .fill("Second article");
@@ -189,10 +191,72 @@ test("keeps draft text separate when switching drafts", async ({ page }) => {
     .fill("Second text");
   await expect(page.locator("#save-status")).toHaveText("Saved on this device");
   await page.getByRole("button", { name: "Show drafts" }).click();
-  await page.getByRole("button", { name: /First article/ }).click();
+  await page.getByRole("link", { name: /First article/ }).click();
   await expect(
     page.getByRole("textbox", { name: "Markdown document" }),
   ).toHaveText("First text");
+});
+
+test("Command-click opens a draft in another tab", async ({ page }) => {
+  await page
+    .getByRole("textbox", { name: "Draft title" })
+    .fill("First article");
+  await page
+    .getByRole("textbox", { name: "Markdown document" })
+    .fill("First text");
+  await expect(page.locator("#save-status")).toHaveText("Saved on this device");
+  await page.getByRole("button", { name: "Show drafts" }).click();
+  const firstUrl = page.url();
+  await page.getByRole("button", { name: "New draft" }).click();
+  await expect(page).not.toHaveURL(firstUrl);
+  await page
+    .getByRole("textbox", { name: "Draft title" })
+    .fill("Second article");
+  await expect(page.locator("#save-status")).toHaveText("Saved on this device");
+  await page.getByRole("button", { name: "Show drafts" }).click();
+  const [otherTab] = await Promise.all([
+    page.waitForEvent("popup"),
+    page
+      .getByRole("link", { name: /First article/ })
+      .click({ modifiers: ["ControlOrMeta"] }),
+  ]);
+  await expect(
+    otherTab.getByRole("textbox", { name: "Draft title" }),
+  ).toHaveValue("First article");
+  await expect(
+    otherTab.getByRole("textbox", { name: "Markdown document" }),
+  ).toHaveText("First text");
+  await expect(page.getByRole("textbox", { name: "Draft title" })).toHaveValue(
+    "Second article",
+  );
+  await otherTab.close();
+});
+
+test("Command-click shows an open draft without allowing a second writer", async ({
+  page,
+}) => {
+  await page.getByRole("textbox", { name: "Draft title" }).fill("Open article");
+  await page
+    .getByRole("textbox", { name: "Markdown document" })
+    .fill("The opening line.");
+  await expect(page.locator("#save-status")).toHaveText("Saved on this device");
+  await page.getByRole("button", { name: "Show drafts" }).click();
+  const [otherTab] = await Promise.all([
+    page.waitForEvent("popup"),
+    page
+      .getByRole("link", { name: /Open article/ })
+      .click({ modifiers: ["ControlOrMeta"] }),
+  ]);
+  await expect(
+    otherTab.getByRole("heading", { name: "Open article" }),
+  ).toBeVisible();
+  await expect(otherTab.locator("#rendered")).toContainText(
+    "The opening line.",
+  );
+  await expect(
+    otherTab.getByRole("textbox", { name: "Markdown document" }),
+  ).toHaveCount(0);
+  await otherTab.close();
 });
 
 test("starts with both sidebars collapsed", async ({ page }) => {
@@ -221,9 +285,23 @@ test("gives single newlines paragraph spacing in write and preview", async ({
   const lineHeight = await lines
     .nth(0)
     .evaluate((element) => parseFloat(getComputedStyle(element).lineHeight));
-  expect(second!.y - first!.y - lineHeight).toBeGreaterThan(5);
+  const gap = second!.y - first!.y - lineHeight;
+  expect(gap).toBeGreaterThan(5);
+  expect(gap).toBeLessThan(lineHeight);
   await page.getByRole("button", { name: "Preview", exact: true }).click();
   await expect(page.locator("#rendered .graf-space")).toHaveCount(1);
+  const previewGap = await page
+    .locator("#rendered .graf-space")
+    .evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        gap: parseFloat(style.height),
+        lineHeight: parseFloat(
+          getComputedStyle(element.parentElement!).lineHeight,
+        ),
+      };
+    });
+  expect(previewGap.gap).toBeLessThan(previewGap.lineHeight);
   await expect(page.locator("#rendered li")).toHaveCount(2);
   await expect(page.locator("#rendered code")).toContainText(["const x = 1;"]);
 });
