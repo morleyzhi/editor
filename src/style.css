@@ -5,8 +5,9 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  color: #2d332e;
-  background: #f6f4ee;
+  color: #e5e9e5;
+  background: #171b1d;
+  color-scheme: dark;
   font-synthesis: none;
   font-size: 13px;
 }
@@ -30,7 +31,7 @@ button {
   transition: background 0.15s;
 }
 button:hover {
-  background: #e9e8e0;
+  background: #303a3d;
 }
 button:disabled {
   opacity: 0.4;
@@ -38,16 +39,16 @@ button:disabled {
 }
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid #56715f;
+  outline: 2px solid #9ed8b4;
   outline-offset: 3px;
 }
 button.primary {
-  background: #345a46;
+  background: #386e54;
   color: #fff;
-  border: 1px solid #345a46;
+  border: 1px solid #386e54;
 }
 button.primary:hover {
-  background: #274734;
+  background: #457d60;
 }
 button[hidden],
 [hidden] {
@@ -58,8 +59,8 @@ button[hidden],
   overflow: hidden;
 }
 .library {
-  background: #efeee7;
-  border-right: 1px solid #dfdfd4;
+  background: #1b2225;
+  border-right: 1px solid #364147;
   display: none;
   flex-direction: column;
   padding: 28px 18px 20px;
@@ -84,7 +85,7 @@ button[hidden],
   margin-bottom: 4px;
 }
 .draft.selected {
-  background: #e0e4d9;
+  background: #30453a;
 }
 .draft > span:last-child {
   min-width: 0;
@@ -100,7 +101,7 @@ button[hidden],
 .draft small {
   display: block;
   font-size: 10px;
-  color: #93978b;
+  color: #9aa9a0;
   margin-top: 7px;
 }
 .library-bottom {
@@ -111,7 +112,7 @@ button[hidden],
   width: 100%;
   text-align: left;
   font-size: 12px;
-  color: #697465;
+  color: #b2c1b5;
   padding: 11px 12px;
 }
 main {
@@ -120,11 +121,11 @@ main {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: #fbfaf6;
+  background: #1d2225;
 }
 header {
   height: 74px;
-  border-bottom: 1px solid #e5e5dc;
+  border-bottom: 1px solid #364147;
   padding: 0 30px;
   display: flex;
   align-items: center;
@@ -139,12 +140,12 @@ header {
   margin-left: auto;
 }
 .header-actions button {
-  border: 1px solid #dcdfd4;
+  border: 1px solid #46534e;
   font-size: 11px;
   padding: 7px 11px;
 }
 #save-status {
-  color: #8b9586;
+  color: #a4b0aa;
   font-size: 10px;
 }
 .document {
@@ -168,7 +169,7 @@ header {
   display: flex;
   gap: 2px;
   align-items: center;
-  color: #8b9185;
+  color: #a4b0aa;
 }
 .toolbar button {
   font-size: 11px;
@@ -180,12 +181,12 @@ header {
   line-height: 14px;
 }
 .toolbar .active {
-  background: #eeeee5;
-  color: #455540;
+  background: #303a3d;
+  color: #d5e6d7;
 }
 .divider {
   height: 16px;
-  border-left: 1px solid #e1e2d8;
+  border-left: 1px solid #46534e;
   margin: 0 8px;
 }
 #title {
@@ -196,13 +197,13 @@ header {
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(30px, 3vw, 46px);
   letter-spacing: -1px;
-  color: #2e3e30;
+  color: #eaf3e8;
   margin: 0;
   padding: 0 0 16px;
   font-weight: 400;
 }
 #title::placeholder {
-  color: #b8bbae;
+  color: #8b9a90;
 }
 #title:focus-visible {
   outline: none;
@@ -211,10 +212,10 @@ header {
   display: flex;
   gap: 12px;
   align-items: center;
-  color: #9a9e91;
+  color: #a4b0aa;
   font-size: 10px;
   padding-bottom: 24px;
-  border-bottom: 1px solid #e6e6dc;
+  border-bottom: 1px solid #364147;
 }
 #writing,
 #rendered {
@@ -226,6 +227,8 @@ header {
   margin: 18px -10px 0;
 }
 .cm-editor {
+  background: transparent;
+  color: inherit;
   height: 100%;
   outline: none !important;
 }
@@ -239,7 +242,7 @@ header {
 }
 .cm-content {
   padding: 12px 10px 180px;
-  caret-color: #345a46;
+  caret-color: #9ed8b4;
 }
 .cm-line {
   padding: 0 0 0.6em !important;
@@ -263,8 +266,8 @@ header {
 }
 .cm-code-line {
   padding: 0 14px !important;
-  background: #efefe6;
-  border-left: 2px solid #d6ddce;
+  background: #293136;
+  border-left: 2px solid #607268;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.8em;
   line-height: 1.7;
@@ -273,25 +276,25 @@ header {
   background: transparent !important;
 }
 .cm-selectionBackground {
-  background: #dce3d6 !important;
+  background: #405c4b !important;
 }
 .cm-cursor {
-  border-left-color: #345a46 !important;
+  border-left-color: #9ed8b4 !important;
 }
 .cm-focused .cm-selectionBackground {
-  background: #d5e1ce !important;
+  background: #486a55 !important;
 }
 .finding {
-  background: #f3e6b8;
-  border-bottom: 2px solid #c5a65b;
+  background: #665226;
+  border-bottom: 2px solid #dfb85e;
   border-radius: 2px;
   cursor: pointer;
 }
 .cm-tooltip {
-  border: 1px solid #dedfce !important;
-  background: #fffef9 !important;
+  border: 1px solid #46534e !important;
+  background: #293136 !important;
   border-radius: 8px;
-  box-shadow: 0 8px 30px #263b2920;
+  box-shadow: 0 8px 30px #00000055;
   z-index: 100 !important;
 }
 .finding-tooltip {
@@ -312,7 +315,7 @@ header {
 }
 .finding-tooltip small {
   display: block;
-  color: #818777;
+  color: #afbdaf;
   font-size: 10px;
 }
 .finding-tooltip button {
@@ -341,20 +344,20 @@ header {
 #rendered pre {
   overflow: auto;
   padding: 20px;
-  background: #efefe6;
+  background: #293136;
   font: 13px/1.6 monospace;
   border-radius: 6px;
 }
 #rendered code {
-  background: #efefe6;
+  background: #293136;
   font-size: 0.8em;
   padding: 2px 4px;
 }
 #rendered blockquote {
-  border-left: 3px solid #8eaa8c;
+  border-left: 3px solid #83b48d;
   padding-left: 22px;
   margin-left: 0;
-  color: #6e7968;
+  color: #b2c1b5;
 }
 #rendered table {
   border-collapse: collapse;
@@ -364,7 +367,7 @@ header {
 }
 #rendered th,
 #rendered td {
-  border: 1px solid #d8ddcf;
+  border: 1px solid #46534e;
   padding: 10px;
 }
 #rendered img {
@@ -372,7 +375,7 @@ header {
   height: auto;
 }
 #rendered a {
-  color: #427053;
+  color: #9ed8b4;
 }
 footer {
   height: 46px;
@@ -380,18 +383,18 @@ footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  border-top: 1px solid #e5e6db;
-  color: #9a9f91;
+  border-top: 1px solid #364147;
+  color: #a4b0aa;
   font-size: 10px;
   gap: 15px;
 }
 .editor-pane {
-  border-left: 1px solid #e0e2d7;
+  border-left: 1px solid #364147;
   padding: 28px 22px 0;
   display: none;
   flex-direction: column;
   min-height: 0;
-  background: #f6f5ef;
+  background: #20272a;
 }
 .pass-label {
   display: flex;
@@ -399,7 +402,7 @@ footer {
   font-size: 9px;
   letter-spacing: 1.3px;
   font-weight: 600;
-  color: #8a9280;
+  color: #a4b0aa;
   margin: 27px 0 13px;
 }
 .pass-label span {
@@ -412,14 +415,14 @@ footer {
   margin: 0 -10px;
   padding: 0 10px 12px;
   scrollbar-width: thin;
-  scrollbar-color: #d5dacb transparent;
+  scrollbar-color: #607268 transparent;
 }
 #passes h3 {
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
   font-weight: 500;
-  color: #a0a694;
+  color: #a4b0aa;
   margin: 18px 7px 8px;
 }
 #passes h3:first-child {
@@ -437,26 +440,26 @@ footer {
   margin-bottom: 3px;
 }
 .pass.selected {
-  background: #e5eadd;
-  color: #3f603b;
+  background: #30453a;
+  color: #d5e6d7;
 }
 .pass-number {
   font-size: 9px;
-  color: #a0a992;
+  color: #a4b0aa;
   font-variant-numeric: tabular-nums;
 }
 .pass.selected .pass-number {
-  color: #6e9060;
+  color: #a9d5a3;
 }
 .pass-arrow {
   margin-left: auto;
-  color: #889b7b;
+  color: #a4b0aa;
   font-size: 15px;
 }
 .run-area {
   padding: 16px 0 8px;
-  border-top: 1px solid #dfe2d4;
-  background: #f6f5ef;
+  border-top: 1px solid #364147;
+  background: #20272a;
 }
 .run-area > button {
   width: 100%;
@@ -471,34 +474,34 @@ footer {
 }
 #pass-detail {
   font-size: 11px;
-  color: #838d78;
+  color: #a4b0aa;
   line-height: 1.6;
   margin: 0 0 13px;
 }
 #pass-status {
   font-size: 10px;
-  color: #909984;
+  color: #a4b0aa;
   text-align: center;
   line-height: 1.6;
   margin: 5px 0 10px;
   min-height: 16px;
 }
 #ack-visible {
-  border: 1px solid #d7ddca;
-  background: #eef0e5;
+  border: 1px solid #46534e;
+  background: #293a32;
 }
 dialog {
   width: 440px;
   max-width: calc(100vw - 32px);
-  border: 1px solid #dce0d1;
+  border: 1px solid #46534e;
   border-radius: 12px;
   padding: 28px;
-  background: #fbfaf6;
-  color: #45513e;
-  box-shadow: 0 25px 100px #28352733;
+  background: #1d2225;
+  color: #e5e9e5;
+  box-shadow: 0 25px 100px #00000077;
 }
 dialog::backdrop {
-  background: #2e3b3055;
+  background: #05090bb3;
   backdrop-filter: blur(3px);
 }
 .dialog-heading {
@@ -514,7 +517,7 @@ dialog::backdrop {
 }
 dialog p {
   line-height: 1.7;
-  color: #818976;
+  color: #b2c1b5;
   font-size: 12px;
 }
 dialog label {
@@ -526,8 +529,9 @@ dialog input {
   width: 100%;
   margin-top: 9px;
   padding: 12px;
-  background: #fff;
-  border: 1px solid #d7ddcd;
+  background: #293136;
+  color: #e5e9e5;
+  border: 1px solid #46534e;
   border-radius: 6px;
 }
 .help {
@@ -541,7 +545,7 @@ dialog input {
 }
 #key-status {
   font-size: 11px;
-  color: #587549;
+  color: #9ed8b4;
 }
 #toast {
   position: fixed;
@@ -549,11 +553,11 @@ dialog input {
   left: 50%;
   transform: translateX(-50%);
   padding: 14px 20px;
-  background: #334e3b;
+  background: #386e54;
   color: white;
   border-radius: 8px;
   max-width: 600px;
-  box-shadow: 0 5px 25px #22332222;
+  box-shadow: 0 5px 25px #00000055;
   z-index: 1000;
   font-size: 12px;
 }
@@ -566,7 +570,7 @@ dialog input {
 }
 
 #crumb {
-  color: #687469;
+  color: #a4b0aa;
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
@@ -575,14 +579,14 @@ dialog input {
 }
 #library-toggle,
 #editor-toggle {
-  border: 1px solid #dcdfd4;
+  border: 1px solid #46534e;
   font-size: 11px;
 }
 #drawer-backdrop {
   position: fixed;
   inset: 0;
   z-index: 10;
-  background: #26342855;
+  background: #05090bb3;
 }
 .library,
 .editor-pane {
@@ -591,7 +595,7 @@ dialog input {
   bottom: 0;
   width: min(320px, calc(100vw - 40px));
   z-index: 11;
-  box-shadow: 0 8px 35px #182b1e30;
+  box-shadow: 0 8px 35px #00000066;
 }
 .library {
   left: 0;

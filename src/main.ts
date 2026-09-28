@@ -24,9 +24,10 @@ import {
 } from "@codemirror/lang-markdown";
 import {
   syntaxHighlighting,
-  defaultHighlightStyle,
+  HighlightStyle,
   syntaxTree,
 } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import DOMPurify from "dompurify";
 import {
   passes,
@@ -95,6 +96,16 @@ function escape(text: string) {
 const continueList = insertNewlineContinueMarkupCommand({
   nonTightLists: false,
 });
+const darkMarkdown = HighlightStyle.define([
+  { tag: tags.heading, color: "#eaf3e8", fontWeight: "bold" },
+  { tag: tags.link, color: "#9ed8b4", textDecoration: "underline" },
+  { tag: tags.url, color: "#9ed8b4" },
+  { tag: tags.emphasis, fontStyle: "italic" },
+  { tag: tags.strong, fontWeight: "bold" },
+  { tag: tags.monospace, color: "#d3c5f1" },
+  { tag: tags.quote, color: "#b9c9ba" },
+  { tag: tags.comment, color: "#a4b0aa" },
+]);
 function exitEmptyList(target: Parameters<typeof continueList>[0]) {
   const { state, dispatch } = target;
   const range = state.selection.main;
@@ -161,7 +172,8 @@ const extensions = [
   ]),
   markdown({ addKeymap: false }),
   markdownLines,
-  syntaxHighlighting(defaultHighlightStyle),
+  syntaxHighlighting(darkMarkdown),
+  EditorView.theme({}, { dark: true }),
   drawSelection(),
   highlightActiveLine(),
   EditorView.lineWrapping,
