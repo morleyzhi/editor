@@ -39,6 +39,30 @@ test("renders Markdown without executing embedded scripts", async ({
   await expect(page).toHaveTitle("Editor");
   await expect(page.locator("#rendered script")).toHaveCount(0);
 });
+test("copies formatted Markdown for pasting into a document", async ({ page }) => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  const markdown = "# Heading\nFirst **bold** paragraph\nSecond paragraph\n\n- One\n- Two\n\n```js\nconst n = 1;\n```\n\n<script>alert(1)</script>";
+  await page.getByRole("textbox", { name: "Markdown document" }).fill(markdown);
+  await page.getByRole("button", { name: "Copy formatted" }).click();
+  await expect(page.locator("#toast")).toHaveText("Formatted article copied. Paste it into Google Docs.");
+  const clipboard = await page.evaluate(async () => {
+    const [item] = await navigator.clipboard.read();
+    return {
+      html: await (await item.getType("text/html")).text(),
+      plain: await (await item.getType("text/plain")).text(),
+    };
+  });
+  expect(clipboard.plain).toBe(markdown);
+  const root = page.locator("#rendered");
+  expect(clipboard.html).toContain("<h1>Heading</h1>");
+  expect(clipboard.html).toContain("<strong>bold</strong>");
+  expect(clipboard.html).toContain("<p>First <strong>bold</strong> paragraph</p><p>Second paragraph</p>");
+  expect(clipboard.html).toContain("<li>One</li>");
+  expect(clipboard.html).toContain("<pre><code");
+  expect(clipboard.html).not.toContain("graf-space");
+  expect(clipboard.html).not.toContain("<script");
+  await expect(root).toBeHidden();
+});
 test("requires acknowledging a finding before editing it", async ({ page }) => {
   await page.route("**/api/settings", (route) =>
     route.fulfill({ json: { hasKey: true } }),
@@ -71,8 +95,37 @@ test("requires acknowledging a finding before editing it", async ({ page }) => {
   await expect(page.locator(".finding-tooltip")).toContainText("padding");
   await page.getByRole("button", { name: "Acknowledge", exact: true }).click();
   await expect(page.locator(".finding")).toHaveCount(0);
+  await expect(page.locator(".finding-tooltip")).toHaveCount(0);
   await editor.fill("Replaced");
   await expect(editor).toHaveText("Replaced");
+});
+test("closes a hovered finding after acknowledgement", async ({ page }) => {
+  await page.route("**/api/settings", (route) =>
+    route.fulfill({ json: { hasKey: true } }),
+  );
+  await page.reload();
+  await page.route("**/api/pass", (route) => {
+    const body = route.request().postDataJSON();
+    return route.fulfill({
+      json: {
+        answers: Object.fromEntries(
+          body.state.spans.map((span: { id: string; text: string }) => [
+            span.id,
+            { noul: span.text === "very" ? 0.95 : 0.1 },
+          ]),
+        ),
+      },
+    });
+  });
+  await page.getByRole("textbox", { name: "Markdown document" }).fill("A very useful piece.");
+  await page.getByRole("button", { name: "Show editor" }).click();
+  await page.getByRole("button", { name: "Run this pass" }).click();
+  await expect(page.locator(".finding")).toHaveText("very");
+  await page.getByRole("button", { name: "Close editor" }).click();
+  await page.locator(".finding").hover();
+  await expect(page.locator(".finding-tooltip")).toBeVisible();
+  await page.getByRole("button", { name: "Acknowledge", exact: true }).click();
+  await expect(page.locator(".finding-tooltip")).toHaveCount(0);
 });
 test("shows pass progress while Jev responds", async ({ page }) => {
   await page.route("**/api/settings", (route) =>
@@ -183,6 +236,8 @@ test("shows drafts on a narrow screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Show drafts" }).click();
   await expect(page.getByRole("button", { name: "New draft" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy formatted" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
 test("keeps writing controls in the top bar", async ({ page }) => {

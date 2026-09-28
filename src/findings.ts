@@ -8,6 +8,7 @@ import {
   Decoration,
   EditorView,
   hoverTooltip,
+  closeHoverTooltips,
   showTooltip,
   type Tooltip,
 } from "@codemirror/view";
@@ -68,7 +69,7 @@ function tooltip(f: Finding): Tooltip {
       button.className = "primary";
       button.onclick = () => {
         view.dispatch({
-          effects: [acknowledge.of([f.id]), openFinding.of(null)],
+          effects: [acknowledge.of([f.id]), openFinding.of(null), closeHoverTooltips],
         });
         view.focus();
       };
@@ -195,7 +196,7 @@ export function visibleFindings(view: EditorView) {
 }
 export function removeFlags(view: EditorView, ids: string[]) {
   view.dispatch({
-    effects: acknowledge.of(ids),
+    effects: [acknowledge.of(ids), closeHoverTooltips],
     annotations: Transaction.addToHistory.of(false),
   });
 }

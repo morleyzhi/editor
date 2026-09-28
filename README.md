@@ -28,6 +28,7 @@ The server listens on loopback. To use a different port, set `PORT` and `EDITOR_
 - A single writing tab holds a browser lock to prevent competing saves. Save errors are visible. Export Markdown to keep a separate copy; clearing browser site data removes local drafts.
 - Drafts and editing passes open from the header and stay hidden while writing. Single newlines display with paragraph spacing in Write and Preview. List items and fenced code blocks keep compact line spacing; fenced code has a monospace writing style. Press Enter on an empty list item to start a prose paragraph at column zero.
 - Write arbitrary Markdown source. Preview renders CommonMark, tables, strikethrough, task lists, footnotes, links, images, code blocks, and sanitized HTML. Executable HTML is stripped. Import and export `.md` files.
+- **Copy formatted** copies the article as sanitized HTML for a normal paste into Google Docs. It also includes the Markdown source as a plain-text clipboard format. Google Docs also has a [Paste from Markdown](https://support.google.com/docs/answer/12014036) command for copied Markdown.
 - CodeMirror renders only the visible part of long documents. Markdown parsing and pass preparation run in workers. Preview blocks use CSS content visibility. Saving and word counts are debounced.
 
 ## Editing passes

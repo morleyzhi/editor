@@ -12,7 +12,7 @@ md.renderer.rules.softbreak = () =>
 self.onmessage = ({
   data,
 }: {
-  data: { kind: "preview" | "stats"; text: string; version: number };
+  data: { kind: "preview" | "stats" | "copy"; text: string; version: number };
 }) => {
   if (data.kind === "stats")
     self.postMessage({
@@ -22,7 +22,7 @@ self.onmessage = ({
     });
   else
     self.postMessage({
-      kind: "preview",
+      kind: data.kind,
       version: data.version,
       html: md.render(data.text),
     });
