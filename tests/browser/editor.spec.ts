@@ -115,8 +115,19 @@ test("keeps writing controls in the top bar", async ({ page }) => {
   await expect(page.locator("header #redo")).toHaveText("Redo");
   await expect(page.locator("header #delete")).toHaveText("Delete");
   await expect(page.getByRole("button", { name: "Preview" })).toHaveCount(0);
-  await expect(page.locator("#words, #read-time")).toHaveCount(0);
+  await expect(page.locator("#words")).toHaveCount(0);
   await expect(page.locator("#save-status")).toBeHidden();
+});
+
+test("shows reading time beside the title", async ({ page }) => {
+  await page.getByRole("textbox", { name: "Markdown document" }).fill("A short draft.");
+  await expect(page.locator("header #reading-meta")).toBeVisible();
+  await expect(page.locator("#read-time")).toHaveText("1 min read");
+  await expect(page.locator("#reading-grade-wrap")).toBeHidden();
+  await page.getByRole("textbox", { name: "Markdown document" }).fill(
+    "The writer explains a clear idea. The reader follows it easily. ".repeat(3),
+  );
+  await expect(page.locator("#reading-grade")).toContainText(/^Grade \d+$/);
 });
 
 test("acknowledges only findings currently on screen", async ({ page }) => {

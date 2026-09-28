@@ -52,7 +52,7 @@ const $ = <T extends HTMLElement>(id: string) =>
 $("app").innerHTML = `
 <div id="drawer-backdrop" hidden></div>
 <aside class="library" id="drafts-panel" aria-label="Drafts"><div class="drawer-heading"><h2>Drafts</h2><button id="close-library" aria-label="Close drafts">Close</button></div><button id="new" class="primary new">New draft</button><nav id="drafts" aria-label="Drafts"></nav><div class="library-bottom"><button id="import">Import Markdown</button><button id="settings">Settings</button></div></aside>
-<main><header><button id="library-toggle" aria-label="Show drafts" aria-expanded="false" aria-controls="drafts-panel">Drafts</button><input id="title" aria-label="Draft title" placeholder="Untitled draft" maxlength="300"><div class="header-actions"><span id="flag-count" hidden>No open findings</span><button id="undo" title="Undo (⌘/Ctrl Z)">Undo</button><button id="redo" title="Redo (⌘/Ctrl Shift Z)">Redo</button><button id="export">Export</button><button id="delete" aria-label="Delete draft">Delete</button><button id="editor-toggle" aria-label="Show editor" aria-expanded="false" aria-controls="editor-panel">Editor</button></div><span id="save-status" hidden></span></header>
+<main><header><button id="library-toggle" aria-label="Show drafts" aria-expanded="false" aria-controls="drafts-panel">Drafts</button><input id="title" aria-label="Draft title" placeholder="Untitled draft" maxlength="300"><span id="reading-meta" hidden>· <span id="read-time"></span><span id="reading-grade-wrap" hidden> · <span id="reading-grade" title="Flesch–Kincaid grade estimate for English prose; code is excluded."></span></span></span><div class="header-actions"><span id="flag-count" hidden>No open findings</span><button id="undo" title="Undo (⌘/Ctrl Z)">Undo</button><button id="redo" title="Redo (⌘/Ctrl Shift Z)">Redo</button><button id="export">Export</button><button id="delete" aria-label="Delete draft">Delete</button><button id="editor-toggle" aria-label="Show editor" aria-expanded="false" aria-controls="editor-panel">Editor</button></div><span id="save-status" hidden></span></header>
 <section class="document"><div id="writing"></div><article id="rendered" hidden></article></section></main>
 <aside class="editor-pane" id="editor-panel" aria-label="Editor"><div class="drawer-heading"><h2>Editor</h2><button id="close-editor" aria-label="Close editor">Close</button></div><div class="pass-label">Editing passes <span id="completed">0 / 20</span></div><div id="passes"></div><div class="run-area"><p id="pass-detail"></p><button id="run" class="primary">Run this pass</button><button id="cancel" hidden>Cancel pass</button><button id="ack-visible" hidden>Acknowledge visible</button><p id="pass-status" role="status"></p></div></aside>
 <dialog id="settings-dialog"><form id="settings-form"><div class="dialog-heading"><h2>Settings</h2><button type="button" id="close-settings" aria-label="Close settings">Close</button></div><p>Your Jev key connects editing passes to TypeSafe.</p><label for="api-key">Jev API key</label><input id="api-key" type="password" autocomplete="off" placeholder="Enter your API key"><p class="help">Your key stays in this local server’s memory for up to 24 hours. Other origins cannot read it. Enter it again after restarting the server.</p><div id="key-status" role="status"></div><div class="dialog-actions"><button type="button" id="forget-key">Forget key</button><button class="primary" type="submit">Save key</button></div></form></dialog><input id="file" type="file" accept=".md,.markdown,.txt,text/plain,text/markdown" hidden><div id="toast" role="status" hidden></div>`;
@@ -63,9 +63,11 @@ let drafts: Draft[] = [],
   hasKey = false,
   preview = false;
 let saving: ReturnType<typeof setTimeout>,
+  statsTimer: ReturnType<typeof setTimeout>,
   previewTimer: ReturnType<typeof setTimeout>;
 let runController: AbortController | null = null,
   version = 0,
+  statsVersion = 0,
   saveQueue = Promise.resolve(),
   dirty = false,
   pendingSaves = 0;
@@ -185,6 +187,7 @@ const extensions = [
   EditorView.updateListener.of((update) => {
     if (update.docChanged) {
       cancelRun("Text changed. Run the pass again when ready.");
+      scheduleReadingStats();
       if (preview) renderPreview();
     }
     if (
@@ -258,6 +261,19 @@ function scheduleSave() {
   $("save-status").textContent = "Saving…";
   clearTimeout(saving);
   saving = setTimeout(saveNow, 300);
+}
+function scheduleReadingStats() {
+  clearTimeout(statsTimer);
+  const next = ++statsVersion;
+  statsTimer = setTimeout(
+    () =>
+      worker.postMessage({
+        kind: "stats",
+        text: view.state.doc.toString(),
+        version: next,
+      }),
+    250,
+  );
 }
 function renderDrafts() {
   $("drafts").innerHTML = drafts
@@ -352,6 +368,7 @@ async function loadDraft(
   $<HTMLInputElement>("title").value = draft.title;
   renderDrafts();
   renderPasses();
+  scheduleReadingStats();
   updateControls();
   if (preview) renderPreview();
   $("app").inert = false;
@@ -392,12 +409,23 @@ function renderPreview() {
   const next = ++version;
   previewTimer = setTimeout(
     () =>
-      worker.postMessage({ text: view.state.doc.toString(), version: next }),
+      worker.postMessage({
+        kind: "preview",
+        text: view.state.doc.toString(),
+        version: next,
+      }),
     150,
   );
 }
 worker.onmessage = ({ data }) => {
-  if (data.version === version)
+  if (data.kind === "stats") {
+    if (data.version !== statsVersion) return;
+    $("reading-meta").hidden = data.words === 0;
+    $("read-time").textContent = `${data.minutes} min read`;
+    $("reading-grade-wrap").hidden = data.grade === null;
+    if (data.grade !== null)
+      $("reading-grade").textContent = `Grade ${data.grade}`;
+  } else if (data.version === version)
     $("rendered").innerHTML = DOMPurify.sanitize(data.html, {
       USE_PROFILES: { html: true },
       FORBID_TAGS: ["style", "form", "button", "iframe"],
@@ -730,6 +758,7 @@ async function start() {
       $("app").innerHTML =
         `<div class="locked"><h1>${escape(draft.title || "Untitled draft")}</h1><p>This draft is open for editing in another tab. Close that tab and reload to edit here.</p><article id="rendered"></article></div>`;
       worker.postMessage({
+        kind: "preview",
         text: String(draft.state.doc || ""),
         version: ++version,
       });

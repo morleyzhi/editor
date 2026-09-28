@@ -180,6 +180,12 @@ header {
 #title:focus-visible {
   outline: none;
 }
+#reading-meta {
+  color: #a4b0aa;
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 #writing,
 #rendered {
   min-height: 0;
@@ -204,7 +210,7 @@ header {
   overscroll-behavior: contain;
 }
 .cm-content {
-  padding: 28px 10px 180px;
+  padding: 48px 10px 180px;
   caret-color: #9ed8b4;
 }
 .cm-line {
